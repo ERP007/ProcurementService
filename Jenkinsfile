@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SERVER_HOST = 'taehyung@ssh.erp007.xyz'
+        SERVER_HOST = 'taehyung@host.docker.internal'
         SERVER_BASE = '/home/taehyung/apps/msa-server'
         SERVICE_DIR = 'procurement-service'
         COMPOSE_SERVICE = 'procurement-service'
