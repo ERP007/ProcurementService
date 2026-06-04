@@ -72,29 +72,4 @@ pipeline {
                         else
                             cp server-images.env "$tmp_file"
                             printf '\\n%s=%s\\n' "$TAG_KEY" "$IMAGE_TAG" >> "$tmp_file"
-                        fi
-
-                        mv "$tmp_file" server-images.env
-
-                        if git diff --quiet -- server-images.env; then
-                            echo "server-images.env already points ${TAG_KEY} at ${IMAGE_TAG}"
-                        else
-                            git add server-images.env
-                            git commit -m "ci: deploy ${SERVICE_NAME} ${IMAGE_TAG}"
-                            git push origin main
-                        fi
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            sh '''
-                docker image rm "${IMAGE_NAME}:build-${IMAGE_TAG}" "${IMAGE_NAME}:${IMAGE_TAG}" "${IMAGE_NAME}:main" >/dev/null 2>&1 || true
-                rm -rf .ci-infra
-            '''
-        }
-    }
-}
+                       
