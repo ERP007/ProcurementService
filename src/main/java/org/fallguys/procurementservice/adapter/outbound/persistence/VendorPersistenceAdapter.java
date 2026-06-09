@@ -6,6 +6,7 @@ import org.fallguys.procurementservice.domain.model.Vendor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -23,5 +24,10 @@ public class VendorPersistenceAdapter implements LoadVendorPort {
         return vendorJpaDao.findAllByActiveTrueAndNameContaining(search).stream()
                 .map(VendorEntity::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<Vendor> findActiveByCode(String code) {
+        return vendorJpaDao.findByCodeAndActiveTrue(code).map(VendorEntity::toDomain);
     }
 }
