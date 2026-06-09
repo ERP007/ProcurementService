@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 
 public record CreatePurchaseOrderLineRequest(
         @NotBlank(message = "품목 코드는 필수입니다.")
-        String itemCode,
+        String itemSku,
 
         @Min(value = 1, message = "수량은 1 이상이어야 합니다.")
         int quantity,
@@ -20,6 +20,6 @@ public record CreatePurchaseOrderLineRequest(
         BigDecimal unitPrice
 ) {
     public CreatePurchaseOrderLineCommand toCommand() {
-        return new CreatePurchaseOrderLineCommand(itemCode, quantity, unitPrice);
+        return new CreatePurchaseOrderLineCommand(itemSku, quantity, unitPrice);
     }
 }
