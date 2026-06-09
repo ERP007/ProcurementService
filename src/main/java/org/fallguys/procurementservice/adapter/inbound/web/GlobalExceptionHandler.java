@@ -3,6 +3,7 @@ package org.fallguys.procurementservice.adapter.inbound.web;
 import lombok.extern.slf4j.Slf4j;
 import org.fallguys.procurementservice.domain.exception.BusinessException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
+import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +15,12 @@ import java.time.Instant;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
+        log.warn("Resource not found: code={}, message={}", ex.getCode(), ex.getMessage());
+        return build(HttpStatus.NOT_FOUND, ex.getCode(), ex.getMessage());
+    }
 
     @ExceptionHandler(ForbiddenException.class)
     public ProblemDetail handleForbidden(ForbiddenException ex) {
