@@ -6,6 +6,7 @@ import org.fallguys.procurementservice.application.port.inbound.SearchActiveVend
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,19 +17,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/procurement-orders")
 @RequiredArgsConstructor
-public class VendorController {
+public class ProcurementController {
 
     private final SearchActiveVendorsUseCase searchActiveVendorsUseCase;
 
     @GetMapping("/vendors")
-    public List<VendorResponse> searchActiveVendors(
+    public ResponseEntity<List<VendorResponse>> searchActiveVendors(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String search
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
-        return searchActiveVendorsUseCase.searchActiveVendors(role, search)
+        List<VendorResponse> result = searchActiveVendorsUseCase.searchActiveVendors(role, search)
                 .stream()
                 .map(VendorResponse::from)
                 .toList();
+        return ResponseEntity.ok(result);
     }
 }
