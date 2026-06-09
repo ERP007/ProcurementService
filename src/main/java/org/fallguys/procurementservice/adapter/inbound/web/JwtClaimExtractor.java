@@ -20,7 +20,7 @@ public class JwtClaimExtractor {
         try {
             String role = jwt.getClaimAsString("user_role");
             return UserRole.valueOf(role);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ForbiddenException(ProcurementErrorCode.UNAUTHORIZED);
         }
     }
