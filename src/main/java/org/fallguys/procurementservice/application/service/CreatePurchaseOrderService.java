@@ -149,7 +149,8 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 .map(cmd -> {
                     ItemInfo info = itemInfoMap.get(cmd.itemSku());
                     if (info == null) {
-                        throw new ResourceNotFoundException(ProcurementErrorCode.ITEM_NOT_FOUND);
+                        throw new ResourceNotFoundException(ProcurementErrorCode.ITEM_NOT_FOUND,
+                                ProcurementErrorCode.ITEM_NOT_FOUND.getMessage() + ": " + cmd.itemSku());
                     }
                     Money unitPrice = Money.of(cmd.unitPrice());
                     return new PurchaseOrderLine(
