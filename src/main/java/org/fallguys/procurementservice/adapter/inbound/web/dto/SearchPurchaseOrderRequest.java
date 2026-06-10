@@ -1,6 +1,5 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderSortField;
@@ -35,8 +34,6 @@ public record SearchPurchaseOrderRequest(
                 message = "sortDirection은 asc 또는 desc여야 합니다.")
         String sortDirection,
 
-        @Min(value = 1, message = "size는 1 이상이어야 합니다.")
-        @Max(value = 50, message = "size는 50 이하여야 합니다.")
         Integer size,
 
         @Min(value = 1, message = "page는 1 이상이어야 합니다.")
@@ -47,13 +44,14 @@ public record SearchPurchaseOrderRequest(
     public SearchPurchaseOrderQuery toQuery() {
         int resolvedSize = size != null ? size : 20;
         validateSize(resolvedSize);
+        LocalDate today = LocalDate.now();
 
         return new SearchPurchaseOrderQuery(
                 search,
                 resolveStatuses(status),
                 vendorCode,
-                startDate != null ? startDate : LocalDate.now().minusDays(90),
-                endDate != null ? endDate : LocalDate.now(),
+                startDate != null ? startDate : today.minusDays(90),
+                endDate != null ? endDate : today,
                 resolveSortField(sortField),
                 resolveSortDirection(sortDirection),
                 resolvedSize,
@@ -84,7 +82,7 @@ public record SearchPurchaseOrderRequest(
                     } catch (IllegalArgumentException e) {
                         throw new BusinessValidationException(
                                 ProcurementErrorCode.INVALID_QUERY_PARAMETER,
-                                "'" + s + "'는 유효하지 않은 status입니다. 허용 값: "
+                                "'" + s + "'는 유효하지 않은 status입니다."
                         );
                     }
                 })
