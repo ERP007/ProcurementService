@@ -44,7 +44,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
      * 5) 재고 서비스에 입고 처리를 요청한다.
      * 6) 저장 후 반환한다.
      *
-     * 트랜잭션: 쓰기. 재고 서비스 호출은 트랜잭션 경계 밖이며, 실패 시 PO 상태 변경이 롤백된다.
+     * 트랜잭션: 쓰기. 재고 서비스 호출은 트랜잭션 내에서 수행되며, 실패 시 예외 전파로 PO 상태 변경이 롤백된다.
      *
      * 예외:
      * - 허용되지 않은 역할: ForbiddenException (403)
