@@ -25,12 +25,15 @@ public class PurchaseOrderEntity {
     @Column(name = "vendor_code", nullable = false)
     private String vendorCode;
 
+    @Column(name = "warehouse_code", nullable = false)
+    private String warehouseCode;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private PurchaseOrderStatus status;
 
-    @Column(name = "expected_arrival_date")
-    private LocalDate expectedArrivalDate;
+    @Column(name = "desired_arrival_date", nullable = false)
+    private LocalDate desiredArrivalDate;
 
     @Column(name = "memo", columnDefinition = "text")
     private String memo;
@@ -54,8 +57,9 @@ public class PurchaseOrderEntity {
         return new PurchaseOrder(
                 code,
                 vendorCode,
+                warehouseCode,
                 status,
-                expectedArrivalDate,
+                desiredArrivalDate,
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
                 creation.toDomain(),
@@ -69,8 +73,9 @@ public class PurchaseOrderEntity {
         PurchaseOrderEntity entity = new PurchaseOrderEntity(
                 po.getCode(),
                 po.getVendorCode(),
+                po.getWarehouseCode(),
                 po.getStatus(),
-                po.getExpectedArrivalDate(),
+                po.getDesiredArrivalDate(),
                 po.getMemo(),
                 new ArrayList<>(),
                 CreationEmbeddable.from(po.getCreation()),
@@ -86,7 +91,7 @@ public class PurchaseOrderEntity {
 
     public PurchaseOrderEntity update(PurchaseOrder po) {
         this.status = po.getStatus();
-        this.expectedArrivalDate = po.getExpectedArrivalDate();
+        this.desiredArrivalDate = po.getDesiredArrivalDate();
         this.memo = po.getMemo();
         this.approval = ApprovalEmbeddable.from(po.getApproval());
         this.receiving = ReceivingEmbeddable.from(po.getReceiving());

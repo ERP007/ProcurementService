@@ -11,8 +11,9 @@ import java.util.List;
 public class PurchaseOrder {
     private final String code;
     private String vendorCode;
+    private String warehouseCode;
     private PurchaseOrderStatus status;
-    private LocalDate expectedArrivalDate;
+    private LocalDate desiredArrivalDate;
     private String memo;
     private List<PurchaseOrderLine> lines;
     private ProcurementOrderCreation creation;
