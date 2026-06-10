@@ -13,7 +13,7 @@ public record PurchaseOrderDetailResponse(
         String code,
         VendorInfo vendor,
         WarehouseInfo warehouse,
-        ApprovedByInfo approvedBy,
+        PersonInfo approvedBy,
         Instant createdAt,
         LocalDate desiredArrivalDate,
         String status,
@@ -23,16 +23,15 @@ public record PurchaseOrderDetailResponse(
 ) {
     public record VendorInfo(String code, String name) {}
     public record WarehouseInfo(String code, String name) {}
-    public record ApprovedByInfo(String code, String name, String position) {}
     public record LineInfo(Long id, String sku, String name, String unit, int quantity, BigDecimal unitPrice) {}
 
     public static PurchaseOrderDetailResponse from(GetPurchaseOrderResult result) {
         PurchaseOrder order = result.order();
 
-        ApprovedByInfo approvedBy = null;
+        PersonInfo approvedBy = null;
         if (result.approvedByUser() != null) {
             UserInfo u = result.approvedByUser();
-            approvedBy = new ApprovedByInfo(u.code(), u.name(), u.position());
+            approvedBy = new PersonInfo(u.code(), u.name(), u.position());
         }
 
         List<LineInfo> lines = order.getLines().stream()
