@@ -1,16 +1,19 @@
 package org.fallguys.procurementservice.adapter.inbound.web;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderDraftRequest;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
+import org.fallguys.procurementservice.application.port.inbound.CreateDraftPurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
+import org.fallguys.procurementservice.domain.model.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.UserRole;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -20,6 +23,7 @@ import java.util.List;
 public class ProcurementController {
 
     private final SearchActiveVendorsUseCase searchActiveVendorsUseCase;
+    private final CreateDraftPurchaseOrderUseCase createDraftPurchaseOrderUseCase;
 
     @GetMapping("/vendors")
     public ResponseEntity<List<VendorResponse>> searchActiveVendors(
@@ -32,5 +36,17 @@ public class ProcurementController {
                 .map(VendorResponse::from)
                 .toList();
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/drafts")
+    public ResponseEntity<CreatePurchaseOrderResponse> createDraft(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody @Valid CreatePurchaseOrderDraftRequest request
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        String userCode = JwtClaimExtractor.extractUserCode(jwt);
+        PurchaseOrder created = createDraftPurchaseOrderUseCase.createDraft(role, request.toCommand(userCode));
+        CreatePurchaseOrderResponse response = CreatePurchaseOrderResponse.from(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
