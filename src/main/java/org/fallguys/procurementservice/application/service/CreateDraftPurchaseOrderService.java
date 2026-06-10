@@ -65,9 +65,7 @@ public class CreateDraftPurchaseOrderService implements CreateDraftPurchaseOrder
         loadVendorPort.findActiveByCode(command.vendorCode())
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.VENDOR_NOT_FOUND));
 
-        if (!loadWarehousePort.existsByCode(command.warehouseCode())) {
-            throw new ResourceNotFoundException(ProcurementErrorCode.WAREHOUSE_NOT_FOUND);
-        }
+        loadWarehousePort.verifyActive(command.warehouseCode());
 
         List<PurchaseOrderLine> lines = resolveLines(command.lines());
         String code = generatePoCodePort.generate();

@@ -5,6 +5,7 @@ import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOr
 import org.fallguys.procurementservice.application.port.outbound.*;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
+import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -90,7 +93,7 @@ class CreateDraftPurchaseOrderServiceTest {
         CreateDraftPurchaseOrderCommand command = commandWithDate(exactlyOneYear);
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
-        given(loadWarehousePort.existsByCode("HQ-SE-01")).willReturn(true);
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -127,7 +130,8 @@ class CreateDraftPurchaseOrderServiceTest {
     void 창고_미존재이면_ResourceNotFoundException_발생() {
         CreateDraftPurchaseOrderCommand command = validCommandWithoutLines();
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
-        given(loadWarehousePort.existsByCode("HQ-SE-01")).willReturn(false);
+        willThrow(new ResourceNotFoundException(ProcurementErrorCode.WAREHOUSE_NOT_FOUND))
+                .given(loadWarehousePort).verifyActive("HQ-SE-01");
 
         assertThatThrownBy(() -> service.createDraft(UserRole.ADMIN, command))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -141,7 +145,7 @@ class CreateDraftPurchaseOrderServiceTest {
         CreateDraftPurchaseOrderCommand command = commandWithLines(List.of(line));
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
-        given(loadWarehousePort.existsByCode("HQ-SE-01")).willReturn(true);
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(loadItemPort.loadAll(List.of("SKU-999"))).willReturn(Map.of());
 
         assertThatThrownBy(() -> service.createDraft(UserRole.ADMIN, command))
@@ -157,7 +161,7 @@ class CreateDraftPurchaseOrderServiceTest {
         CreateDraftPurchaseOrderCommand command = validCommandWithoutLines();
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
-        given(loadWarehousePort.existsByCode("HQ-SE-01")).willReturn(true);
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -175,7 +179,7 @@ class CreateDraftPurchaseOrderServiceTest {
         CreateDraftPurchaseOrderCommand command = commandWithLines(List.of(lineCmd));
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
-        given(loadWarehousePort.existsByCode("HQ-SE-01")).willReturn(true);
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(loadItemPort.loadAll(List.of("SKU-001"))).willReturn(Map.of("SKU-001", itemInfo));
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -199,7 +203,7 @@ class CreateDraftPurchaseOrderServiceTest {
         CreateDraftPurchaseOrderCommand command = validCommandWithoutLines();
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
-        given(loadWarehousePort.existsByCode("HQ-SE-01")).willReturn(true);
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
