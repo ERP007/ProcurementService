@@ -16,6 +16,7 @@ import org.fallguys.procurementservice.domain.model.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -85,6 +86,10 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
 
         List<PurchaseOrderLine> lines = buildDraftLines(command.lines());
 
+        Money totalAmount = new Money(lines.stream()
+                .map(l -> l.lineAmount().amount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+
         PurchaseOrder updated = new PurchaseOrder(
                 existing.getCode(),
                 command.vendorCode(),
@@ -93,6 +98,7 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
                 command.desiredArrivalDate(),
                 command.memo(),
                 lines,
+                totalAmount,
                 existing.getCreation(),
                 null,
                 null,
@@ -136,8 +142,7 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
                             null,
                             null,
                             cmd.quantity(),
-                            unitPrice,
-                            unitPrice.multiply(cmd.quantity())
+                            unitPrice
                     );
                 })
                 .toList();

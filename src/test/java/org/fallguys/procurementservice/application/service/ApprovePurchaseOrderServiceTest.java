@@ -7,7 +7,6 @@ import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrd
 import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
-import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +49,7 @@ class ApprovePurchaseOrderServiceTest {
     @BeforeEach
     void setUp() {
         Money unitPrice = Money.of(BigDecimal.valueOf(10000));
-        draftLine = new PurchaseOrderLine(1L, "SKU-001", null, null, 5, unitPrice, unitPrice.multiply(5));
+        draftLine = new PurchaseOrderLine(1L, "SKU-001", null, null, 5, unitPrice);
         itemInfo = new ItemInfo("SKU-001", "브레이크 패드", "EA");
 
         ProcurementOrderCreation creation = new ProcurementOrderCreation("EMP-001", Instant.parse("2026-06-01T00:00:00Z"));
@@ -60,6 +59,7 @@ class ApprovePurchaseOrderServiceTest {
                 PurchaseOrderStatus.DRAFT,
                 LocalDate.now().plusDays(7), "메모",
                 List.of(draftLine),
+                Money.of(BigDecimal.valueOf(50000)),
                 creation, null, null, null
         );
 
@@ -68,6 +68,7 @@ class ApprovePurchaseOrderServiceTest {
                 PurchaseOrderStatus.DRAFT,
                 LocalDate.now().plusDays(7), "메모",
                 List.of(),
+                Money.of(BigDecimal.ZERO),
                 creation, null, null, null
         );
     }
@@ -111,6 +112,7 @@ class ApprovePurchaseOrderServiceTest {
                 PurchaseOrderStatus.DRAFT,
                 LocalDate.now().plusYears(1).plusDays(1), null,
                 List.of(),
+                Money.of(BigDecimal.ZERO),
                 new ProcurementOrderCreation("EMP-001", Instant.now()), null, null, null
         );
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(expiredPo));
@@ -130,6 +132,7 @@ class ApprovePurchaseOrderServiceTest {
                 PurchaseOrderStatus.APPROVED,
                 LocalDate.now().plusDays(7), null,
                 List.of(),
+                Money.of(BigDecimal.ZERO),
                 new ProcurementOrderCreation("EMP-001", Instant.now()),
                 new ProcurementOrderApproval("EMP-001", Instant.now()), null, null
         );
@@ -180,7 +183,7 @@ class ApprovePurchaseOrderServiceTest {
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
         assertThat(line.getItemNameSnapshot()).isEqualTo("브레이크 패드");
         assertThat(line.getUnitSnapshot()).isEqualTo("EA");
-        assertThat(line.getLineAmount().amount()).isEqualByComparingTo(BigDecimal.valueOf(50000));
+        assertThat(line.lineAmount().amount()).isEqualByComparingTo(BigDecimal.valueOf(50000));
     }
 
     @Test

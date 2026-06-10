@@ -17,17 +17,13 @@ public record ApprovePurchaseOrderResponse(
         Instant approvedAt
 ) {
     public static ApprovePurchaseOrderResponse from(PurchaseOrder po) {
-        BigDecimal totalAmount = po.getLines().stream()
-                .map(line -> line.getLineAmount().amount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         return new ApprovePurchaseOrderResponse(
                 po.getCode(),
                 po.getVendorCode(),
                 po.getWarehouseCode(),
                 po.getDesiredArrivalDate(),
                 po.getStatus().name(),
-                totalAmount,
+                po.getTotalAmount().amount(),
                 "KRW",
                 po.getApproval().approvedAt()
         );

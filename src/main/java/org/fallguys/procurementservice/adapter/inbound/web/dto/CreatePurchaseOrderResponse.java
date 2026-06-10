@@ -17,17 +17,13 @@ public record CreatePurchaseOrderResponse(
         Instant createdAt
 ) {
     public static CreatePurchaseOrderResponse from(PurchaseOrder po) {
-        BigDecimal totalAmount = po.getLines().stream()
-                .map(line -> line.getLineAmount().amount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         return new CreatePurchaseOrderResponse(
                 po.getCode(),
                 po.getVendorCode(),
                 po.getWarehouseCode(),
                 po.getDesiredArrivalDate(),
                 po.getStatus().name(),
-                totalAmount,
+                po.getTotalAmount().amount(),
                 "KRW",
                 po.getCreation().createdAt()
         );

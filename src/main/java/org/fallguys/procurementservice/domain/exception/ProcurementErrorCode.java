@@ -23,7 +23,8 @@ public enum ProcurementErrorCode {
     INVALID_QUERY_PARAMETER("PO-03-06", "유효하지 않은 조회 파라미터입니다."),
 
     ITEM_SERVICE_ERROR("PO-07-01", "아이템 서비스 호출에 실패했습니다."),
-    INVENTORY_SERVICE_ERROR("PO-07-02", "재고 서비스 호출에 실패했습니다.");
+    INVENTORY_SERVICE_ERROR("PO-07-02", "재고 서비스 호출에 실패했습니다."),
+    USER_SERVICE_ERROR("PO-07-03", "유저 서비스 호출에 실패했습니다.");
 
     private final String code;
     private final String message;
