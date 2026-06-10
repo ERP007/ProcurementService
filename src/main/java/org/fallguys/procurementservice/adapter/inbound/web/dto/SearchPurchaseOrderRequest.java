@@ -14,6 +14,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 public record SearchPurchaseOrderRequest(
         String search,
@@ -41,7 +42,12 @@ public record SearchPurchaseOrderRequest(
         @Min(value = 1, message = "page는 1 이상이어야 합니다.")
         Integer page
 ) {
+    private static final Set<Integer> VALID_SIZES = Set.of(10, 20, 50);
+
     public SearchPurchaseOrderQuery toQuery() {
+        int resolvedSize = size != null ? size : 20;
+        validateSize(resolvedSize);
+
         return new SearchPurchaseOrderQuery(
                 search,
                 resolveStatuses(status),
@@ -50,9 +56,18 @@ public record SearchPurchaseOrderRequest(
                 endDate != null ? endDate : LocalDate.now(),
                 resolveSortField(sortField),
                 resolveSortDirection(sortDirection),
-                size != null ? size : 20,
+                resolvedSize,
                 page != null ? page : 1
         );
+    }
+
+    private static void validateSize(int size) {
+        if (!VALID_SIZES.contains(size)) {
+            throw new BusinessValidationException(
+                    ProcurementErrorCode.INVALID_QUERY_PARAMETER,
+                    "size는 10, 20, 50 중 하나여야 합니다. 입력값: " + size
+            );
+        }
     }
 
     private static List<PurchaseOrderStatus> resolveStatuses(String status) {
