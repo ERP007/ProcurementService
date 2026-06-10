@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderDraftRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
-import org.fallguys.procurementservice.application.port.inbound.CreateDraftPurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.UserRole;
@@ -23,7 +23,7 @@ import java.util.List;
 public class ProcurementController {
 
     private final SearchActiveVendorsUseCase searchActiveVendorsUseCase;
-    private final CreateDraftPurchaseOrderUseCase createDraftPurchaseOrderUseCase;
+    private final CreatePurchaseOrderUseCase createPurchaseOrderUseCase;
 
     @GetMapping("/vendors")
     public ResponseEntity<List<VendorResponse>> searchActiveVendors(
@@ -45,7 +45,7 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
-        PurchaseOrder created = createDraftPurchaseOrderUseCase.createDraft(role, request.toCommand(userCode));
+        PurchaseOrder created = createPurchaseOrderUseCase.create(role, request.toCommand(userCode));
         CreatePurchaseOrderResponse response = CreatePurchaseOrderResponse.from(created);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.fallguys.procurementservice.application.port.inbound.CreateDraftPurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderLineCommand;
 
 import java.time.LocalDate;
@@ -29,12 +29,12 @@ public record CreatePurchaseOrderDraftRequest(
         @Valid
         List<CreatePurchaseOrderLineRequest> lines
 ) {
-    public CreateDraftPurchaseOrderCommand toCommand(String userCode) {
+    public CreatePurchaseOrderCommand toCommand(String userCode) {
         List<CreatePurchaseOrderLineCommand> lineCommands = lines == null
                 ? List.of()
                 : lines.stream().map(CreatePurchaseOrderLineRequest::toCommand).toList();
 
-        return new CreateDraftPurchaseOrderCommand(
+        return new CreatePurchaseOrderCommand(
                 userCode,
                 vendorCode,
                 warehouseCode,
