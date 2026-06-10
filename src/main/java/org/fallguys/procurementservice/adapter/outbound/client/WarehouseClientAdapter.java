@@ -58,7 +58,7 @@ public class WarehouseClientAdapter implements LoadWarehousePort {
             }
             return response;
         } catch (HttpStatusCodeException e) {
-            if (HttpStatus.resolve(e.getStatusCode().value()) == HttpStatus.NOT_FOUND) {
+            if (e.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
                 throw new ResourceNotFoundException(ProcurementErrorCode.WAREHOUSE_NOT_FOUND);
             }
             throw new ExternalServiceException(
