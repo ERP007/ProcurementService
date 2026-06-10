@@ -1,7 +1,6 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderResult;
-import org.fallguys.procurementservice.application.port.outbound.UserInfo;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
 
 import java.math.BigDecimal;
@@ -28,11 +27,7 @@ public record PurchaseOrderDetailResponse(
     public static PurchaseOrderDetailResponse from(GetPurchaseOrderResult result) {
         PurchaseOrder order = result.order();
 
-        PersonInfo approvedBy = null;
-        if (result.approvedByUser() != null) {
-            UserInfo u = result.approvedByUser();
-            approvedBy = new PersonInfo(u.code(), u.name(), u.position());
-        }
+        PersonInfo approvedBy = PersonInfo.from(result.approvedByUser());
 
         List<LineInfo> lines = order.getLines().stream()
                 .map(l -> new LineInfo(
