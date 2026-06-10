@@ -9,4 +9,5 @@ public interface VendorJpaDao extends JpaRepository<VendorEntity, String> {
     List<VendorEntity> findAllByActiveTrue();
     List<VendorEntity> findAllByActiveTrueAndNameContaining(String name);
     Optional<VendorEntity> findByCodeAndActiveTrue(String code);
+    List<VendorEntity> findAllByNameContaining(String name);
 }

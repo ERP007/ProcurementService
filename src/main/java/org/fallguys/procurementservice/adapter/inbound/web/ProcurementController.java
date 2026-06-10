@@ -7,12 +7,15 @@ import org.fallguys.procurementservice.adapter.inbound.web.dto.DraftPurchaseOrde
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderKpiResponse;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderPageResponse;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.SearchPurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
 import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderKpiUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
+import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftUseCase;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.UserRole;
@@ -34,6 +37,7 @@ public class ProcurementController {
     private final UpdatePurchaseOrderDraftUseCase updatePurchaseOrderDraftUseCase;
     private final ApprovePurchaseOrderUseCase approvePurchaseOrderUseCase;
     private final GetPurchaseOrderKpiUseCase getPurchaseOrderKpiUseCase;
+    private final SearchPurchaseOrderUseCase searchPurchaseOrderUseCase;
 
     @GetMapping("/kpi")
     public ResponseEntity<PurchaseOrderKpiResponse> getKpi(
@@ -41,6 +45,17 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         return ResponseEntity.ok(PurchaseOrderKpiResponse.from(getPurchaseOrderKpiUseCase.getKpi(role)));
+    }
+
+    @GetMapping
+    public ResponseEntity<PurchaseOrderPageResponse> search(
+            @AuthenticationPrincipal Jwt jwt,
+            @ModelAttribute @Valid SearchPurchaseOrderRequest request
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        return ResponseEntity.ok(PurchaseOrderPageResponse.from(
+                searchPurchaseOrderUseCase.search(role, request.toQuery())
+        ));
     }
 
     @GetMapping("/vendors")
