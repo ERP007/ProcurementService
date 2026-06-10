@@ -2,7 +2,7 @@ package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.outbound.GeneratePoCodePort;
 import org.fallguys.procurementservice.application.port.outbound.ItemInfo;
@@ -109,18 +109,18 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
         }
     }
 
-    private void validateNoDuplicateItemSkus(List<CreatePurchaseOrderLineCommand> lines) {
+    private void validateNoDuplicateItemSkus(List<PurchaseOrderLineCommand> lines) {
         if (lines == null || lines.isEmpty()) return;
         Set<String> seen = new HashSet<>();
         boolean hasDuplicate = lines.stream()
-                .map(CreatePurchaseOrderLineCommand::itemSku)
+                .map(PurchaseOrderLineCommand::itemSku)
                 .anyMatch(sku -> !seen.add(sku));
         if (hasDuplicate) {
             throw new BusinessValidationException(ProcurementErrorCode.DUPLICATE_ITEM_CODE);
         }
     }
 
-    private List<PurchaseOrderLine> buildDraftLines(List<CreatePurchaseOrderLineCommand> lineCommands) {
+    private List<PurchaseOrderLine> buildDraftLines(List<PurchaseOrderLineCommand> lineCommands) {
         if (lineCommands == null || lineCommands.isEmpty()) return List.of();
         return lineCommands.stream()
                 .map(cmd -> {
@@ -138,9 +138,9 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 .toList();
     }
 
-    private List<PurchaseOrderLine> buildApprovedLines(List<CreatePurchaseOrderLineCommand> lineCommands) {
+    private List<PurchaseOrderLine> buildApprovedLines(List<PurchaseOrderLineCommand> lineCommands) {
         List<String> skus = lineCommands.stream()
-                .map(CreatePurchaseOrderLineCommand::itemSku)
+                .map(PurchaseOrderLineCommand::itemSku)
                 .toList();
 
         Map<String, ItemInfo> itemInfoMap = loadItemPort.loadAll(skus);

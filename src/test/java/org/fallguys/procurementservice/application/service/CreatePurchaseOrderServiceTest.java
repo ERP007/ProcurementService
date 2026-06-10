@@ -1,7 +1,7 @@
 package org.fallguys.procurementservice.application.service;
 
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
 import org.fallguys.procurementservice.application.port.outbound.*;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
@@ -92,7 +92,7 @@ class CreatePurchaseOrderServiceTest {
 
     @Test
     void 동일_itemSku_중복이면_BusinessValidationException_발생() {
-        CreatePurchaseOrderLineCommand line = new CreatePurchaseOrderLineCommand("SKU-001", 10, BigDecimal.valueOf(8400));
+        PurchaseOrderLineCommand line = new PurchaseOrderLineCommand("SKU-001", 10, BigDecimal.valueOf(8400));
 
         assertThatThrownBy(() -> service.create(UserRole.ADMIN, draftCommandWithLines(List.of(line, line))))
                 .isInstanceOf(BusinessValidationException.class);
@@ -142,7 +142,7 @@ class CreatePurchaseOrderServiceTest {
 
     @Test
     void 라인_포함_초안_생성_성공_스냅샷은_null() {
-        CreatePurchaseOrderLineCommand lineCmd = new CreatePurchaseOrderLineCommand("SKU-001", 10, BigDecimal.valueOf(8400));
+        PurchaseOrderLineCommand lineCmd = new PurchaseOrderLineCommand("SKU-001", 10, BigDecimal.valueOf(8400));
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
@@ -182,7 +182,7 @@ class CreatePurchaseOrderServiceTest {
 
     @Test
     void 존재하지_않는_SKU이면_ResourceNotFoundException_발생() {
-        CreatePurchaseOrderLineCommand lineCmd = new CreatePurchaseOrderLineCommand("SKU-999", 5, BigDecimal.valueOf(1000));
+        PurchaseOrderLineCommand lineCmd = new PurchaseOrderLineCommand("SKU-999", 5, BigDecimal.valueOf(1000));
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
@@ -197,7 +197,7 @@ class CreatePurchaseOrderServiceTest {
 
     @Test
     void APPROVED_생성_성공_스냅샷_채워짐() {
-        CreatePurchaseOrderLineCommand lineCmd = new CreatePurchaseOrderLineCommand("SKU-001", 5, BigDecimal.valueOf(10000));
+        PurchaseOrderLineCommand lineCmd = new PurchaseOrderLineCommand("SKU-001", 5, BigDecimal.valueOf(10000));
         ItemInfo itemInfo = new ItemInfo("SKU-001", "브레이크 패드", "EA");
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
@@ -217,7 +217,7 @@ class CreatePurchaseOrderServiceTest {
 
     @Test
     void APPROVED_생성_성공_approval_세팅됨() {
-        CreatePurchaseOrderLineCommand lineCmd = new CreatePurchaseOrderLineCommand("SKU-001", 1, BigDecimal.valueOf(1000));
+        PurchaseOrderLineCommand lineCmd = new PurchaseOrderLineCommand("SKU-001", 1, BigDecimal.valueOf(1000));
         ItemInfo itemInfo = new ItemInfo("SKU-001", "브레이크 패드", "EA");
 
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
@@ -243,7 +243,7 @@ class CreatePurchaseOrderServiceTest {
         return draftCommandWithLines(List.of());
     }
 
-    private CreatePurchaseOrderCommand draftCommandWithLines(List<CreatePurchaseOrderLineCommand> lines) {
+    private CreatePurchaseOrderCommand draftCommandWithLines(List<PurchaseOrderLineCommand> lines) {
         return new CreatePurchaseOrderCommand(
                 "EMP-001", "VD-001", "HQ-SE-01",
                 LocalDate.now().plusDays(7), "정기 발주 건", lines,
@@ -251,7 +251,7 @@ class CreatePurchaseOrderServiceTest {
         );
     }
 
-    private CreatePurchaseOrderCommand approvedCommandWithLines(List<CreatePurchaseOrderLineCommand> lines) {
+    private CreatePurchaseOrderCommand approvedCommandWithLines(List<PurchaseOrderLineCommand> lines) {
         return new CreatePurchaseOrderCommand(
                 "EMP-001", "VD-001", "HQ-SE-01",
                 LocalDate.now().plusDays(7), "정기 발주 건", lines,
