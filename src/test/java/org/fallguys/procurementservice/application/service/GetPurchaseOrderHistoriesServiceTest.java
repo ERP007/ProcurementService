@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,7 +57,7 @@ class GetPurchaseOrderHistoriesServiceTest {
         creation = new ProcurementOrderCreation("EMP-001", T1);
         approval = new ProcurementOrderApproval("EMP-002", T2);
         cancellation = new ProcurementOrderCancellation("EMP-002", T3, "단순 변심");
-        receiving = new ProcurementOrderReceiving("EMP-003", T3);
+        receiving = new ProcurementOrderReceiving("EMP-003", T3, LocalDate.of(2026, 5, 3));
     }
 
     // ── 역할 검증 ──────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -31,5 +32,13 @@ public class PurchaseOrder {
         this.status = PurchaseOrderStatus.APPROVED;
         this.approval = approval;
         this.lines = validatedLines;
+    }
+
+    public void receive(String userCode, LocalDate receivedDate) {
+        if (this.status != PurchaseOrderStatus.APPROVED) {
+            throw new BusinessValidationException(ProcurementErrorCode.PURCHASE_ORDER_NOT_APPROVED);
+        }
+        this.status = PurchaseOrderStatus.RECEIVED;
+        this.receiving = new ProcurementOrderReceiving(userCode, Instant.now(), receivedDate);
     }
 }
