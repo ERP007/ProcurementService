@@ -49,4 +49,23 @@ public class RestClientConfig {
                 .requestFactory(requestFactory)
                 .build();
     }
+
+    @Bean
+    public RestClient userRestClient(
+            @Value("${client.user.base-url}") String baseUrl,
+            @Value("${client.user.connect-timeout-seconds:5}") int connectTimeoutSeconds,
+            @Value("${client.user.read-timeout-seconds:10}") int readTimeoutSeconds) {
+
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(connectTimeoutSeconds))
+                .build();
+
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofSeconds(readTimeoutSeconds));
+
+        return RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(requestFactory)
+                .build();
+    }
 }
