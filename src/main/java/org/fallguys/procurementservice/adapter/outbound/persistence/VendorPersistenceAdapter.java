@@ -30,4 +30,9 @@ public class VendorPersistenceAdapter implements LoadVendorPort {
     public Optional<Vendor> findActiveByCode(String code) {
         return vendorJpaDao.findByCodeAndActiveTrue(code).map(VendorEntity::toDomain);
     }
+
+    @Override
+    public Optional<Vendor> findByCode(String code) {
+        return vendorJpaDao.findById(code).map(VendorEntity::toDomain);
+    }
 }

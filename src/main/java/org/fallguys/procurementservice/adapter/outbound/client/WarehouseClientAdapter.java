@@ -2,7 +2,9 @@ package org.fallguys.procurementservice.adapter.outbound.client;
 
 import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.adapter.outbound.client.dto.WarehouseResponse;
+import org.fallguys.procurementservice.application.port.outbound.LoadWarehouseInfoPort;
 import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ExternalServiceException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
@@ -15,7 +17,7 @@ import org.springframework.web.client.RestClientException;
 
 @Component
 @RequiredArgsConstructor
-public class WarehouseClientAdapter implements LoadWarehousePort {
+public class WarehouseClientAdapter implements LoadWarehousePort, LoadWarehouseInfoPort {
 
     private static final String WAREHOUSE_PATH = "/internal/inventory/warehouses/{code}";
 
@@ -41,6 +43,12 @@ public class WarehouseClientAdapter implements LoadWarehousePort {
         if (!response.active()) {
             throw new BusinessValidationException(ProcurementErrorCode.WAREHOUSE_INACTIVE);
         }
+    }
+
+    @Override
+    public WarehouseInfo findByCode(String warehouseCode) {
+        WarehouseResponse response = fetchWarehouse(warehouseCode);
+        return new WarehouseInfo(response.code(), response.name());
     }
 
     private WarehouseResponse fetchWarehouse(String warehouseCode) {
