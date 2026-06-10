@@ -3,6 +3,8 @@ package org.fallguys.procurementservice.adapter.inbound.web;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.ApprovePurchaseOrderResponse;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.CancelPurchaseOrderRequest;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.CancelPurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.DraftPurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
@@ -16,6 +18,8 @@ import org.fallguys.procurementservice.adapter.inbound.web.dto.SearchPurchaseOrd
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
 import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.inbound.CancelPurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.inbound.CancelPurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderKpiUseCase;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderHistoriesUseCase;
@@ -49,6 +53,7 @@ public class ProcurementController {
     private final GetPurchaseOrderUseCase getPurchaseOrderUseCase;
     private final GetPurchaseOrderHistoriesUseCase getPurchaseOrderHistoriesUseCase;
     private final ReceivePurchaseOrderUseCase receivePurchaseOrderUseCase;
+    private final CancelPurchaseOrderUseCase cancelPurchaseOrderUseCase;
 
     @GetMapping("/{code}")
     public ResponseEntity<PurchaseOrderDetailResponse> getDetail(
@@ -146,6 +151,18 @@ public class ProcurementController {
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
         PurchaseOrder approved = approvePurchaseOrderUseCase.approve(role, new ApprovePurchaseOrderCommand(code, userCode));
         return ResponseEntity.ok(ApprovePurchaseOrderResponse.from(approved));
+    }
+
+    @PatchMapping("/{code}/cancel")
+    public ResponseEntity<CancelPurchaseOrderResponse> cancel(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String code,
+            @RequestBody @Valid CancelPurchaseOrderRequest request
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        String userCode = JwtClaimExtractor.extractUserCode(jwt);
+        PurchaseOrder canceled = cancelPurchaseOrderUseCase.cancel(role, new CancelPurchaseOrderCommand(code, userCode, request.reason()));
+        return ResponseEntity.ok(CancelPurchaseOrderResponse.from(canceled));
     }
 
     @PostMapping
