@@ -24,12 +24,4 @@ public class JwtClaimExtractor {
             throw new ForbiddenException(ProcurementErrorCode.UNAUTHORIZED);
         }
     }
-
-    public static String extractWarehouseCode(Jwt jwt) {
-        String warehouseCode = jwt.getClaimAsString("tenancy_code");
-        if (warehouseCode == null || warehouseCode.isBlank()) {
-            throw new ForbiddenException(ProcurementErrorCode.UNAUTHORIZED);
-        }
-        return warehouseCode;
-    }
 }

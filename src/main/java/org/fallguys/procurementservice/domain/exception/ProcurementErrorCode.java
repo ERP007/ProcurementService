@@ -21,6 +21,7 @@ public enum ProcurementErrorCode {
     WAREHOUSE_INACTIVE("PO-03-04", "비활성 창고입니다."),
     PURCHASE_ORDER_NOT_DRAFT("PO-03-05", "DRAFT 상태인 발주서만 수정할 수 있습니다."),
     PURCHASE_ORDER_NOT_APPROVED("PO-03-06", "APPROVED 상태인 발주서만 입고 처리할 수 있습니다."),
+    PURCHASE_ORDER_NOT_CANCELABLE("PO-03-08", "DRAFT 또는 APPROVED 상태인 발주서만 취소할 수 있습니다."),
     INVALID_QUERY_PARAMETER("PO-03-07", "유효하지 않은 조회 파라미터입니다."),
 
     ITEM_SERVICE_ERROR("PO-07-01", "아이템 서비스 호출에 실패했습니다."),

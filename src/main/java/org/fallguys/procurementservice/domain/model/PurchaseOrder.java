@@ -41,4 +41,12 @@ public class PurchaseOrder {
         this.status = PurchaseOrderStatus.RECEIVED;
         this.receiving = new ProcurementOrderReceiving(userCode, Instant.now(), receivedDate);
     }
+
+    public void cancel(ProcurementOrderCancellation cancellation) {
+        if (this.status != PurchaseOrderStatus.DRAFT && this.status != PurchaseOrderStatus.APPROVED) {
+            throw new BusinessValidationException(ProcurementErrorCode.PURCHASE_ORDER_NOT_CANCELABLE);
+        }
+        this.status = PurchaseOrderStatus.CANCELED;
+        this.cancellation = cancellation;
+    }
 }
