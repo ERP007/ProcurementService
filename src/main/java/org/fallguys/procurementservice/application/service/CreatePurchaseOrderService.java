@@ -74,7 +74,9 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
         loadWarehousePort.verifyActive(command.warehouseCode());
 
         String code = generatePoCodePort.generate();
-        List<PurchaseOrderLine> lines = command.status() == PurchaseOrderStatus.APPROVED
+        Instant now = Instant.now();
+        boolean isApproved = command.status() == PurchaseOrderStatus.APPROVED;
+        List<PurchaseOrderLine> lines = isApproved
                 ? buildApprovedLines(command.lines())
                 : buildDraftLines(command.lines());
 
@@ -86,8 +88,8 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 command.desiredArrivalDate(),
                 command.memo(),
                 lines,
-                new ProcurementOrderCreation(command.userCode(), Instant.now()),
-                null,
+                new ProcurementOrderCreation(command.userCode(), now),
+                isApproved ? new ProcurementOrderApproval(command.userCode(), now) : null,
                 null,
                 null
         );
