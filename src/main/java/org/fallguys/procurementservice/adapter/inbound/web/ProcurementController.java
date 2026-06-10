@@ -6,10 +6,12 @@ import org.fallguys.procurementservice.adapter.inbound.web.dto.ApprovePurchaseOr
 import org.fallguys.procurementservice.adapter.inbound.web.dto.DraftPurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderKpiResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
 import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderKpiUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
 import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftUseCase;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
@@ -31,6 +33,15 @@ public class ProcurementController {
     private final CreatePurchaseOrderUseCase createPurchaseOrderUseCase;
     private final UpdatePurchaseOrderDraftUseCase updatePurchaseOrderDraftUseCase;
     private final ApprovePurchaseOrderUseCase approvePurchaseOrderUseCase;
+    private final GetPurchaseOrderKpiUseCase getPurchaseOrderKpiUseCase;
+
+    @GetMapping("/kpi")
+    public ResponseEntity<PurchaseOrderKpiResponse> getKpi(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        return ResponseEntity.ok(PurchaseOrderKpiResponse.from(getPurchaseOrderKpiUseCase.getKpi(role)));
+    }
 
     @GetMapping("/vendors")
     public ResponseEntity<List<VendorResponse>> searchActiveVendors(
