@@ -3,6 +3,7 @@ package org.fallguys.procurementservice.adapter.inbound.web;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderDraftRequest;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
@@ -46,7 +47,17 @@ public class ProcurementController {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
         PurchaseOrder created = createPurchaseOrderUseCase.create(role, request.toCommand(userCode));
-        CreatePurchaseOrderResponse response = CreatePurchaseOrderResponse.from(created);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(CreatePurchaseOrderResponse.from(created));
+    }
+
+    @PostMapping
+    public ResponseEntity<CreatePurchaseOrderResponse> createPurchaseOrder(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody @Valid CreatePurchaseOrderRequest request
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        String userCode = JwtClaimExtractor.extractUserCode(jwt);
+        PurchaseOrder created = createPurchaseOrderUseCase.create(role, request.toCommand(userCode));
+        return ResponseEntity.status(HttpStatus.CREATED).body(CreatePurchaseOrderResponse.from(created));
     }
 }
