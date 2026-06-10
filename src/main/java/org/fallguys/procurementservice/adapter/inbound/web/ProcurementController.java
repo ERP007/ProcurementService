@@ -8,6 +8,8 @@ import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrd
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderDetailResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderHistoryResponse;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.ReceivePurchaseOrderRequest;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.ReceivePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderKpiResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderPageResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.SearchPurchaseOrderRequest;
@@ -18,6 +20,8 @@ import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOr
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderKpiUseCase;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderHistoriesUseCase;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.inbound.ReceivePurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.inbound.ReceivePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftUseCase;
@@ -44,6 +48,7 @@ public class ProcurementController {
     private final SearchPurchaseOrderUseCase searchPurchaseOrderUseCase;
     private final GetPurchaseOrderUseCase getPurchaseOrderUseCase;
     private final GetPurchaseOrderHistoriesUseCase getPurchaseOrderHistoriesUseCase;
+    private final ReceivePurchaseOrderUseCase receivePurchaseOrderUseCase;
 
     @GetMapping("/{code}")
     public ResponseEntity<PurchaseOrderDetailResponse> getDetail(
@@ -117,6 +122,19 @@ public class ProcurementController {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         PurchaseOrder updated = updatePurchaseOrderDraftUseCase.update(role, request.toUpdateCommand(code));
         return ResponseEntity.ok(CreatePurchaseOrderResponse.from(updated));
+    }
+
+    @PatchMapping("/{code}/receive")
+    public ResponseEntity<ReceivePurchaseOrderResponse> receive(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String code,
+            @RequestBody @Valid ReceivePurchaseOrderRequest request
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        String userCode = JwtClaimExtractor.extractUserCode(jwt);
+        PurchaseOrder received = receivePurchaseOrderUseCase.receive(role,
+                new ReceivePurchaseOrderCommand(code, userCode, request.receivedDate()));
+        return ResponseEntity.ok(ReceivePurchaseOrderResponse.from(received));
     }
 
     @PatchMapping("/{code}/approve")
