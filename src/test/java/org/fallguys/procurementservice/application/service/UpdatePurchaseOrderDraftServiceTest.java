@@ -58,6 +58,7 @@ class UpdatePurchaseOrderDraftServiceTest {
                 PurchaseOrderStatus.DRAFT,
                 LocalDate.now().plusDays(7), "기존 메모",
                 List.of(),
+                Money.of(BigDecimal.ZERO),
                 originalCreation, null, null, null
         );
     }
@@ -101,6 +102,7 @@ class UpdatePurchaseOrderDraftServiceTest {
                 PurchaseOrderStatus.APPROVED,
                 LocalDate.now().plusDays(7), null,
                 List.of(),
+                Money.of(BigDecimal.ZERO),
                 originalCreation, null, null, null
         );
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(approvedPo));
@@ -210,7 +212,7 @@ class UpdatePurchaseOrderDraftServiceTest {
         assertThat(result.getMemo()).isEqualTo("수정된 메모");
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
         assertThat(result.getLines()).hasSize(1);
-        assertThat(result.getLines().get(0).getLineAmount().amount())
+        assertThat(result.getLines().get(0).lineAmount().amount())
                 .isEqualByComparingTo(BigDecimal.valueOf(50000));
     }
 

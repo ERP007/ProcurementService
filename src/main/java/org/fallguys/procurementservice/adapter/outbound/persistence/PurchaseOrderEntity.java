@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
 import org.hibernate.annotations.BatchSize;
@@ -69,6 +70,7 @@ public class PurchaseOrderEntity {
                 desiredArrivalDate,
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
+                new Money(totalAmount),
                 creation.toDomain(),
                 ApprovalEmbeddable.toDomain(approval),
                 ReceivingEmbeddable.toDomain(receiving),

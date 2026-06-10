@@ -102,15 +102,13 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
                         throw new ResourceNotFoundException(ProcurementErrorCode.ITEM_NOT_FOUND,
                                 ProcurementErrorCode.ITEM_NOT_FOUND.getMessage() + ": " + line.getItemSku());
                     }
-                    Money unitPrice = line.getUnitPrice();
                     return new PurchaseOrderLine(
                             line.getId(),
                             line.getItemSku(),
                             info.itemName(),
                             info.unit(),
                             line.getOrderQuantity(),
-                            unitPrice,
-                            unitPrice.multiply(line.getOrderQuantity())
+                            line.getUnitPrice()
                     );
                 })
                 .toList();

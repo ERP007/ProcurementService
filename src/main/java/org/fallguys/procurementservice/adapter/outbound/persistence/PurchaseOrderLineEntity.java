@@ -44,7 +44,7 @@ public class PurchaseOrderLineEntity {
 
     public PurchaseOrderLine toDomain() {
         return new PurchaseOrderLine(id, itemSku, itemNameSnapshot, unitSnapshot,
-                orderQuantity, new Money(unitPrice), new Money(lineAmount));
+                orderQuantity, new Money(unitPrice));
     }
 
     public static PurchaseOrderLineEntity from(PurchaseOrderLine line, PurchaseOrderEntity purchaseOrder) {
@@ -56,7 +56,7 @@ public class PurchaseOrderLineEntity {
                 line.getUnitSnapshot(),
                 line.getOrderQuantity(),
                 line.getUnitPrice().amount(),
-                line.getLineAmount().amount()
+                line.lineAmount().amount()
         );
     }
 }

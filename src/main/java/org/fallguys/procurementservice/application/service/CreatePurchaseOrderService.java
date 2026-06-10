@@ -15,6 +15,7 @@ import org.fallguys.procurementservice.domain.model.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumSet;
@@ -80,6 +81,10 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 ? buildApprovedLines(command.lines())
                 : buildDraftLines(command.lines());
 
+        Money totalAmount = new Money(lines.stream()
+                .map(l -> l.lineAmount().amount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+
         PurchaseOrder purchaseOrder = new PurchaseOrder(
                 code,
                 command.vendorCode(),
@@ -88,6 +93,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 command.desiredArrivalDate(),
                 command.memo(),
                 lines,
+                totalAmount,
                 new ProcurementOrderCreation(command.userCode(), now),
                 isApproved ? new ProcurementOrderApproval(command.userCode(), now) : null,
                 null,
@@ -131,8 +137,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                             null,
                             null,
                             cmd.quantity(),
-                            unitPrice,
-                            unitPrice.multiply(cmd.quantity())
+                            unitPrice
                     );
                 })
                 .toList();
@@ -159,8 +164,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                             info.itemName(),
                             info.unit(),
                             cmd.quantity(),
-                            unitPrice,
-                            unitPrice.multiply(cmd.quantity())
+                            unitPrice
                     );
                 })
                 .toList();

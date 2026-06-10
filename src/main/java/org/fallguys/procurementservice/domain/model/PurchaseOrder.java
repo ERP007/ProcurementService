@@ -18,6 +18,7 @@ public class PurchaseOrder {
     private LocalDate desiredArrivalDate;
     private String memo;
     private List<PurchaseOrderLine> lines;
+    private Money totalAmount;
     private ProcurementOrderCreation creation;
     private ProcurementOrderApproval approval;
     private ProcurementOrderReceiving receiving;

@@ -156,7 +156,7 @@ class CreatePurchaseOrderServiceTest {
         assertThat(line.getItemNameSnapshot()).isNull();
         assertThat(line.getUnitSnapshot()).isNull();
         assertThat(line.getOrderQuantity()).isEqualTo(10);
-        assertThat(line.getLineAmount().amount()).isEqualByComparingTo(BigDecimal.valueOf(84000));
+        assertThat(line.lineAmount().amount()).isEqualByComparingTo(BigDecimal.valueOf(84000));
     }
 
     @Test
@@ -212,7 +212,7 @@ class CreatePurchaseOrderServiceTest {
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
         assertThat(line.getItemNameSnapshot()).isEqualTo("브레이크 패드");
         assertThat(line.getUnitSnapshot()).isEqualTo("EA");
-        assertThat(line.getLineAmount().amount()).isEqualByComparingTo(BigDecimal.valueOf(50000));
+        assertThat(line.lineAmount().amount()).isEqualByComparingTo(BigDecimal.valueOf(50000));
     }
 
     @Test
