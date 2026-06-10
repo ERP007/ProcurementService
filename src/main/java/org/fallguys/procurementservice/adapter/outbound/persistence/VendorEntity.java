@@ -8,7 +8,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.fallguys.procurementservice.domain.model.Vendor;
+import org.hibernate.annotations.BatchSize;
 
+@BatchSize(size = 50)
 @Entity
 @Table(name = "vendors")
 @Getter
@@ -50,12 +52,4 @@ public class VendorEntity {
         );
     }
 
-    public VendorEntity update(Vendor vendor) {
-        this.name = vendor.getName();
-        this.contactPerson = vendor.getContactPerson();
-        this.phone = vendor.getPhone();
-        this.address = vendor.getAddress();
-        this.active = vendor.isActive();
-        return this;
-    }
 }
