@@ -5,6 +5,7 @@ import jakarta.persistence.Embeddable;
 import org.fallguys.procurementservice.domain.model.ProcurementOrderReceiving;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Embeddable
 public record ReceivingEmbeddable(
@@ -13,16 +14,19 @@ public record ReceivingEmbeddable(
         String receivedBy,
 
         @Column(name = "received_at")
-        Instant receivedAt
+        Instant receivedAt,
+
+        @Column(name = "received_date")
+        LocalDate receivedDate
 
 ) {
     public ProcurementOrderReceiving toDomain() {
-        return new ProcurementOrderReceiving(receivedBy, receivedAt);
+        return new ProcurementOrderReceiving(receivedBy, receivedAt, receivedDate);
     }
 
     public static ReceivingEmbeddable from(ProcurementOrderReceiving receiving) {
         if (receiving == null) return null;
-        return new ReceivingEmbeddable(receiving.receivedBy(), receiving.receivedAt());
+        return new ReceivingEmbeddable(receiving.receivedBy(), receiving.receivedAt(), receiving.receivedDate());
     }
 
     public static ProcurementOrderReceiving toDomain(ReceivingEmbeddable embeddable) {
