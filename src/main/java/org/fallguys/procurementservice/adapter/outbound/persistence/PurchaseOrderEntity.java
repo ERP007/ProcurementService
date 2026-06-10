@@ -90,6 +90,8 @@ public class PurchaseOrderEntity {
     }
 
     public PurchaseOrderEntity update(PurchaseOrder po) {
+        this.vendorCode = po.getVendorCode();
+        this.warehouseCode = po.getWarehouseCode();
         this.status = po.getStatus();
         this.desiredArrivalDate = po.getDesiredArrivalDate();
         this.memo = po.getMemo();
