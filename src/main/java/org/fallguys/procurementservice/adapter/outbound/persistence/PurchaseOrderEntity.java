@@ -32,7 +32,7 @@ public class PurchaseOrderEntity {
     @Column(name = "status", nullable = false)
     private PurchaseOrderStatus status;
 
-    @Column(name = "desired_arrival_date")
+    @Column(name = "desired_arrival_date", nullable = false)
     private LocalDate desiredArrivalDate;
 
     @Column(name = "memo", columnDefinition = "text")
