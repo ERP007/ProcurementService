@@ -2,10 +2,13 @@ package org.fallguys.procurementservice.adapter.inbound.web;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.ApprovePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.DraftPurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
+import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
 import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftUseCase;
@@ -27,6 +30,7 @@ public class ProcurementController {
     private final SearchActiveVendorsUseCase searchActiveVendorsUseCase;
     private final CreatePurchaseOrderUseCase createPurchaseOrderUseCase;
     private final UpdatePurchaseOrderDraftUseCase updatePurchaseOrderDraftUseCase;
+    private final ApprovePurchaseOrderUseCase approvePurchaseOrderUseCase;
 
     @GetMapping("/vendors")
     public ResponseEntity<List<VendorResponse>> searchActiveVendors(
@@ -61,6 +65,17 @@ public class ProcurementController {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         PurchaseOrder updated = updatePurchaseOrderDraftUseCase.update(role, request.toUpdateCommand(code));
         return ResponseEntity.ok(CreatePurchaseOrderResponse.from(updated));
+    }
+
+    @PatchMapping("/{code}/approve")
+    public ResponseEntity<ApprovePurchaseOrderResponse> approve(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String code
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        String userCode = JwtClaimExtractor.extractUserCode(jwt);
+        PurchaseOrder approved = approvePurchaseOrderUseCase.approve(role, new ApprovePurchaseOrderCommand(code, userCode));
+        return ResponseEntity.ok(ApprovePurchaseOrderResponse.from(approved));
     }
 
     @PostMapping
