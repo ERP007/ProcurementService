@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +36,7 @@ class CreatePurchaseOrderServiceTest {
 
     @Mock private LoadVendorPort loadVendorPort;
     @Mock private LoadWarehousePort loadWarehousePort;
+    @Mock private LoadItemPort loadItemPort;
     @Mock private GeneratePoCodePort generatePoCodePort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
 
@@ -52,18 +54,18 @@ class CreatePurchaseOrderServiceTest {
 
     @Test
     void BRANCH_MANAGER_역할이면_ForbiddenException_발생() {
-        assertThatThrownBy(() -> service.create(UserRole.BRANCH_MANAGER, validCommandWithoutLines()))
+        assertThatThrownBy(() -> service.create(UserRole.BRANCH_MANAGER, draftCommandWithoutLines()))
                 .isInstanceOf(ForbiddenException.class);
 
-        verifyNoInteractions(loadVendorPort, loadWarehousePort, generatePoCodePort, savePurchaseOrderPort);
+        verifyNoInteractions(loadVendorPort, loadWarehousePort, loadItemPort, generatePoCodePort, savePurchaseOrderPort);
     }
 
     @Test
     void BRANCH_STAFF_역할이면_ForbiddenException_발생() {
-        assertThatThrownBy(() -> service.create(UserRole.BRANCH_STAFF, validCommandWithoutLines()))
+        assertThatThrownBy(() -> service.create(UserRole.BRANCH_STAFF, draftCommandWithoutLines()))
                 .isInstanceOf(ForbiddenException.class);
 
-        verifyNoInteractions(loadVendorPort, loadWarehousePort, generatePoCodePort, savePurchaseOrderPort);
+        verifyNoInteractions(loadVendorPort, loadWarehousePort, loadItemPort, generatePoCodePort, savePurchaseOrderPort);
     }
 
     // ── 도착 희망일 검증 ───────────────────────────────────────────────────
@@ -73,7 +75,7 @@ class CreatePurchaseOrderServiceTest {
         assertThatThrownBy(() -> service.create(UserRole.ADMIN, commandWithDate(LocalDate.now().plusYears(1).plusDays(1))))
                 .isInstanceOf(BusinessValidationException.class);
 
-        verifyNoInteractions(loadVendorPort, loadWarehousePort, generatePoCodePort, savePurchaseOrderPort);
+        verifyNoInteractions(loadVendorPort, loadWarehousePort, loadItemPort, generatePoCodePort, savePurchaseOrderPort);
     }
 
     @Test
@@ -92,10 +94,10 @@ class CreatePurchaseOrderServiceTest {
     void 동일_itemSku_중복이면_BusinessValidationException_발생() {
         CreatePurchaseOrderLineCommand line = new CreatePurchaseOrderLineCommand("SKU-001", 10, BigDecimal.valueOf(8400));
 
-        assertThatThrownBy(() -> service.create(UserRole.ADMIN, commandWithLines(List.of(line, line))))
+        assertThatThrownBy(() -> service.create(UserRole.ADMIN, draftCommandWithLines(List.of(line, line))))
                 .isInstanceOf(BusinessValidationException.class);
 
-        verifyNoInteractions(loadVendorPort, loadWarehousePort, generatePoCodePort, savePurchaseOrderPort);
+        verifyNoInteractions(loadVendorPort, loadWarehousePort, loadItemPort, generatePoCodePort, savePurchaseOrderPort);
     }
 
     // ── 공급사·창고 조회 ───────────────────────────────────────────────────
@@ -104,10 +106,10 @@ class CreatePurchaseOrderServiceTest {
     void 공급사_미존재이면_ResourceNotFoundException_발생() {
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(UserRole.ADMIN, validCommandWithoutLines()))
+        assertThatThrownBy(() -> service.create(UserRole.ADMIN, draftCommandWithoutLines()))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(loadWarehousePort, generatePoCodePort, savePurchaseOrderPort);
+        verifyNoInteractions(loadWarehousePort, loadItemPort, generatePoCodePort, savePurchaseOrderPort);
     }
 
     @Test
@@ -116,13 +118,13 @@ class CreatePurchaseOrderServiceTest {
         willThrow(new ResourceNotFoundException(ProcurementErrorCode.WAREHOUSE_NOT_FOUND))
                 .given(loadWarehousePort).verifyActive("HQ-SE-01");
 
-        assertThatThrownBy(() -> service.create(UserRole.ADMIN, validCommandWithoutLines()))
+        assertThatThrownBy(() -> service.create(UserRole.ADMIN, draftCommandWithoutLines()))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(generatePoCodePort, savePurchaseOrderPort);
+        verifyNoInteractions(loadItemPort, generatePoCodePort, savePurchaseOrderPort);
     }
 
-    // ── 성공 ───────────────────────────────────────────────────────────────
+    // ── DRAFT 성공 ─────────────────────────────────────────────────────────
 
     @Test
     void 라인_없이_초안_생성_성공() {
@@ -131,7 +133,7 @@ class CreatePurchaseOrderServiceTest {
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-        PurchaseOrder result = service.create(UserRole.HQ_MANAGER, validCommandWithoutLines());
+        PurchaseOrder result = service.create(UserRole.HQ_MANAGER, draftCommandWithoutLines());
 
         assertThat(result.getCode()).isEqualTo("PO-2026-06-0001");
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
@@ -147,7 +149,7 @@ class CreatePurchaseOrderServiceTest {
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-        PurchaseOrder result = service.create(UserRole.HQ_STAFF, commandWithLines(List.of(lineCmd)));
+        PurchaseOrder result = service.create(UserRole.HQ_STAFF, draftCommandWithLines(List.of(lineCmd)));
 
         PurchaseOrderLine line = result.getLines().get(0);
         assertThat(line.getItemSku()).isEqualTo("SKU-001");
@@ -158,13 +160,13 @@ class CreatePurchaseOrderServiceTest {
     }
 
     @Test
-    void 저장_시_올바른_도메인_객체가_전달된다() {
+    void 초안_저장_시_approval은_null() {
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-        service.create(UserRole.ADMIN, validCommandWithoutLines());
+        service.create(UserRole.ADMIN, draftCommandWithoutLines());
 
         ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
         verify(savePurchaseOrderPort).save(captor.capture());
@@ -176,22 +178,91 @@ class CreatePurchaseOrderServiceTest {
         assertThat(saved.getCancellation()).isNull();
     }
 
-    // ── 픽스처 ────────────────────────────────────────────────────────────
+    // ── APPROVED 성공 ──────────────────────────────────────────────────────
 
-    private CreatePurchaseOrderCommand validCommandWithoutLines() {
-        return commandWithLines(List.of());
+    @Test
+    void 존재하지_않는_SKU이면_ResourceNotFoundException_발생() {
+        CreatePurchaseOrderLineCommand lineCmd = new CreatePurchaseOrderLineCommand("SKU-999", 5, BigDecimal.valueOf(1000));
+
+        given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
+        given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
+        given(loadItemPort.loadAll(List.of("SKU-999"))).willReturn(Map.of());
+
+        assertThatThrownBy(() -> service.create(UserRole.ADMIN, approvedCommandWithLines(List.of(lineCmd))))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verifyNoInteractions(savePurchaseOrderPort);
     }
 
-    private CreatePurchaseOrderCommand commandWithLines(List<CreatePurchaseOrderLineCommand> lines) {
+    @Test
+    void APPROVED_생성_성공_스냅샷_채워짐() {
+        CreatePurchaseOrderLineCommand lineCmd = new CreatePurchaseOrderLineCommand("SKU-001", 5, BigDecimal.valueOf(10000));
+        ItemInfo itemInfo = new ItemInfo("SKU-001", "브레이크 패드", "EA");
+
+        given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
+        given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
+        given(loadItemPort.loadAll(List.of("SKU-001"))).willReturn(Map.of("SKU-001", itemInfo));
+        given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        PurchaseOrder result = service.create(UserRole.ADMIN, approvedCommandWithLines(List.of(lineCmd)));
+
+        PurchaseOrderLine line = result.getLines().get(0);
+        assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
+        assertThat(line.getItemNameSnapshot()).isEqualTo("브레이크 패드");
+        assertThat(line.getUnitSnapshot()).isEqualTo("EA");
+        assertThat(line.getLineAmount().amount()).isEqualByComparingTo(BigDecimal.valueOf(50000));
+    }
+
+    @Test
+    void APPROVED_생성_성공_approval_세팅됨() {
+        CreatePurchaseOrderLineCommand lineCmd = new CreatePurchaseOrderLineCommand("SKU-001", 1, BigDecimal.valueOf(1000));
+        ItemInfo itemInfo = new ItemInfo("SKU-001", "브레이크 패드", "EA");
+
+        given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
+        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
+        given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
+        given(loadItemPort.loadAll(List.of("SKU-001"))).willReturn(Map.of("SKU-001", itemInfo));
+        given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        service.create(UserRole.ADMIN, approvedCommandWithLines(List.of(lineCmd)));
+
+        ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
+        verify(savePurchaseOrderPort).save(captor.capture());
+
+        PurchaseOrder saved = captor.getValue();
+        assertThat(saved.getApproval()).isNotNull();
+        assertThat(saved.getApproval().approvedBy()).isEqualTo("EMP-001");
+        assertThat(saved.getApproval().approvedAt()).isNotNull();
+    }
+
+    // ── 픽스처 ────────────────────────────────────────────────────────────
+
+    private CreatePurchaseOrderCommand draftCommandWithoutLines() {
+        return draftCommandWithLines(List.of());
+    }
+
+    private CreatePurchaseOrderCommand draftCommandWithLines(List<CreatePurchaseOrderLineCommand> lines) {
         return new CreatePurchaseOrderCommand(
                 "EMP-001", "VD-001", "HQ-SE-01",
-                LocalDate.now().plusDays(7), "정기 발주 건", lines
+                LocalDate.now().plusDays(7), "정기 발주 건", lines,
+                PurchaseOrderStatus.DRAFT
+        );
+    }
+
+    private CreatePurchaseOrderCommand approvedCommandWithLines(List<CreatePurchaseOrderLineCommand> lines) {
+        return new CreatePurchaseOrderCommand(
+                "EMP-001", "VD-001", "HQ-SE-01",
+                LocalDate.now().plusDays(7), "정기 발주 건", lines,
+                PurchaseOrderStatus.APPROVED
         );
     }
 
     private CreatePurchaseOrderCommand commandWithDate(LocalDate date) {
         return new CreatePurchaseOrderCommand(
-                "EMP-001", "VD-001", "HQ-SE-01", date, null, List.of()
+                "EMP-001", "VD-001", "HQ-SE-01", date, null, List.of(),
+                PurchaseOrderStatus.DRAFT
         );
     }
 }
