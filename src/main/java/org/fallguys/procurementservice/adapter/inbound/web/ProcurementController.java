@@ -7,6 +7,7 @@ import org.fallguys.procurementservice.adapter.inbound.web.dto.DraftPurchaseOrde
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderDetailResponse;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderHistoryResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderKpiResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderPageResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.SearchPurchaseOrderRequest;
@@ -15,6 +16,7 @@ import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseO
 import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderKpiUseCase;
+import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderHistoriesUseCase;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
 import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOrderUseCase;
@@ -41,6 +43,7 @@ public class ProcurementController {
     private final GetPurchaseOrderKpiUseCase getPurchaseOrderKpiUseCase;
     private final SearchPurchaseOrderUseCase searchPurchaseOrderUseCase;
     private final GetPurchaseOrderUseCase getPurchaseOrderUseCase;
+    private final GetPurchaseOrderHistoriesUseCase getPurchaseOrderHistoriesUseCase;
 
     @GetMapping("/{code}")
     public ResponseEntity<PurchaseOrderDetailResponse> getDetail(
@@ -49,6 +52,17 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         return ResponseEntity.ok(PurchaseOrderDetailResponse.from(getPurchaseOrderUseCase.get(role, code)));
+    }
+
+    @GetMapping("/{code}/histories")
+    public ResponseEntity<List<PurchaseOrderHistoryResponse>> getHistories(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String code
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        return ResponseEntity.ok(PurchaseOrderHistoryResponse.listFrom(
+                getPurchaseOrderHistoriesUseCase.getHistories(role, code)
+        ));
     }
 
     @GetMapping("/kpi")
