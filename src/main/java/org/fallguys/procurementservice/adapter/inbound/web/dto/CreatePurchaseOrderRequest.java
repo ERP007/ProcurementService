@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
 import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
 
 import java.time.LocalDate;
@@ -29,11 +29,11 @@ public record CreatePurchaseOrderRequest(
         @NotNull(message = "발주 라인은 필수입니다.")
         @Size(min = 1, max = 100, message = "발주 라인은 1개 이상 100개 이하이어야 합니다.")
         @Valid
-        List<CreatePurchaseOrderLineRequest> lines
+        List<PurchaseOrderLineRequest> lines
 ) {
     public CreatePurchaseOrderCommand toCommand(String userCode) {
-        List<CreatePurchaseOrderLineCommand> lineCommands = lines.stream()
-                .map(CreatePurchaseOrderLineRequest::toCommand)
+        List<PurchaseOrderLineCommand> lineCommands = lines.stream()
+                .map(PurchaseOrderLineRequest::toCommand)
                 .toList();
 
         return new CreatePurchaseOrderCommand(

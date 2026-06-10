@@ -2,7 +2,7 @@ package org.fallguys.procurementservice.application.port.inbound;
 
 import java.math.BigDecimal;
 
-public record CreatePurchaseOrderLineCommand(
+public record PurchaseOrderLineCommand(
     String itemSku,
     int quantity,
     BigDecimal unitPrice
