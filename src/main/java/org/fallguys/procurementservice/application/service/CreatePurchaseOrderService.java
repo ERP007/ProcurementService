@@ -5,6 +5,8 @@ import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOr
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderLineCommand;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.outbound.GeneratePoCodePort;
+import org.fallguys.procurementservice.application.port.outbound.ItemInfo;
+import org.fallguys.procurementservice.application.port.outbound.LoadItemPort;
 import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
@@ -18,6 +20,7 @@ import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -32,18 +35,20 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
 
     private final LoadVendorPort loadVendorPort;
     private final LoadWarehousePort loadWarehousePort;
+    private final LoadItemPort loadItemPort;
     private final GeneratePoCodePort generatePoCodePort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
 
     /**
-     * 발주를 생성한다. (DRAFT: 임시 저장)
+     * 발주를 생성한다. (DRAFT: 임시 저장 / APPROVED: 즉시 승인)
      *
      * 흐름:
      * 1) 역할 검증: ADMIN·HQ_MANAGER·HQ_STAFF만 허용.
      * 2) 비즈니스 검증: 도착 희망일 1년 이내, 품목 코드 중복 없음.
      * 3) 공급사 조회: 미존재 시 404.
      * 4) 창고 조회: 미존재·비활성 시 404/400.
-     * 5) 라인을 임시 저장 형태로 구성한다(품목 검증·스냅샷은 REQUESTED 전환 시 처리).
+     * 5) APPROVED인 경우 품목 서비스 호출로 SKU 존재 검증 후 스냅샷 채워 라인 구성.
+     *    DRAFT인 경우 스냅샷 없이 라인 구성.
      * 6) PO 코드 채번 후 도메인 객체 생성.
      * 7) 저장 후 반환.
      *
@@ -54,6 +59,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
      * - 도착 희망일 1년 초과: BusinessValidationException (400)
      * - 품목 코드 중복: BusinessValidationException (400)
      * - 공급사·창고 미존재: ResourceNotFoundException (404)
+     * - 존재하지 않는 SKU 포함(APPROVED): ResourceNotFoundException (404)
      */
     @Override
     @Transactional
@@ -68,13 +74,15 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
         loadWarehousePort.verifyActive(command.warehouseCode());
 
         String code = generatePoCodePort.generate();
-        List<PurchaseOrderLine> lines = buildDraftLines(command.lines());
+        List<PurchaseOrderLine> lines = command.status() == PurchaseOrderStatus.APPROVED
+                ? buildApprovedLines(command.lines())
+                : buildDraftLines(command.lines());
 
         PurchaseOrder purchaseOrder = new PurchaseOrder(
                 code,
                 command.vendorCode(),
                 command.warehouseCode(),
-                PurchaseOrderStatus.DRAFT,
+                command.status(),
                 command.desiredArrivalDate(),
                 command.memo(),
                 lines,
@@ -120,6 +128,33 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                             cmd.itemSku(),
                             null,
                             null,
+                            cmd.quantity(),
+                            unitPrice,
+                            unitPrice.multiply(cmd.quantity())
+                    );
+                })
+                .toList();
+    }
+
+    private List<PurchaseOrderLine> buildApprovedLines(List<CreatePurchaseOrderLineCommand> lineCommands) {
+        List<String> skus = lineCommands.stream()
+                .map(CreatePurchaseOrderLineCommand::itemSku)
+                .toList();
+
+        Map<String, ItemInfo> itemInfoMap = loadItemPort.loadAll(skus);
+
+        return lineCommands.stream()
+                .map(cmd -> {
+                    ItemInfo info = itemInfoMap.get(cmd.itemSku());
+                    if (info == null) {
+                        throw new ResourceNotFoundException(ProcurementErrorCode.ITEM_NOT_FOUND);
+                    }
+                    Money unitPrice = Money.of(cmd.unitPrice());
+                    return new PurchaseOrderLine(
+                            null,
+                            cmd.itemSku(),
+                            info.itemName(),
+                            info.unit(),
                             cmd.quantity(),
                             unitPrice,
                             unitPrice.multiply(cmd.quantity())

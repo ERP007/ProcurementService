@@ -12,7 +12,7 @@ import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
 import java.time.LocalDate;
 import java.util.List;
 
-public record CreatePurchaseOrderDraftRequest(
+public record CreatePurchaseOrderRequest(
         @NotBlank(message = "공급사 코드는 필수입니다.")
         String vendorCode,
 
@@ -26,14 +26,15 @@ public record CreatePurchaseOrderDraftRequest(
         @Size(max = 500, message = "메모는 최대 500자까지 입력할 수 있습니다.")
         String memo,
 
-        @Size(max = 100, message = "발주 라인은 최대 100개까지 입력할 수 있습니다.")
+        @NotNull(message = "발주 라인은 필수입니다.")
+        @Size(min = 1, max = 100, message = "발주 라인은 1개 이상 100개 이하이어야 합니다.")
         @Valid
         List<CreatePurchaseOrderLineRequest> lines
 ) {
     public CreatePurchaseOrderCommand toCommand(String userCode) {
-        List<CreatePurchaseOrderLineCommand> lineCommands = lines == null
-                ? List.of()
-                : lines.stream().map(CreatePurchaseOrderLineRequest::toCommand).toList();
+        List<CreatePurchaseOrderLineCommand> lineCommands = lines.stream()
+                .map(CreatePurchaseOrderLineRequest::toCommand)
+                .toList();
 
         return new CreatePurchaseOrderCommand(
                 userCode,
@@ -42,7 +43,7 @@ public record CreatePurchaseOrderDraftRequest(
                 desiredArrivalDate,
                 memo,
                 lineCommands,
-                PurchaseOrderStatus.DRAFT
+                PurchaseOrderStatus.APPROVED
         );
     }
 }

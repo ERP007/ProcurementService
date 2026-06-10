@@ -1,5 +1,7 @@
 package org.fallguys.procurementservice.application.port.inbound;
 
+import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -9,5 +11,6 @@ public record CreatePurchaseOrderCommand(
         String warehouseCode,
         LocalDate desiredArrivalDate,
         String memo,
-        List<CreatePurchaseOrderLineCommand> lines
+        List<CreatePurchaseOrderLineCommand> lines,
+        PurchaseOrderStatus status
 ) {}
