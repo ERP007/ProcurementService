@@ -12,7 +12,7 @@ import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
 import java.time.LocalDate;
 import java.util.List;
 
-public record CreatePurchaseOrderDraftRequest(
+public record CreateDraftPurchaseOrderRequest(
         @NotBlank(message = "공급사 코드는 필수입니다.")
         String vendorCode,
 

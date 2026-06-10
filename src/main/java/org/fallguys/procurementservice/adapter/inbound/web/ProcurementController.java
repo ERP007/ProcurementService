@@ -2,7 +2,7 @@ package org.fallguys.procurementservice.adapter.inbound.web;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderDraftRequest;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.CreateDraftPurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.VendorResponse;
@@ -42,7 +42,7 @@ public class ProcurementController {
     @PostMapping("/drafts")
     public ResponseEntity<CreatePurchaseOrderResponse> createDraft(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody @Valid CreatePurchaseOrderDraftRequest request
+            @RequestBody @Valid CreateDraftPurchaseOrderRequest request
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
