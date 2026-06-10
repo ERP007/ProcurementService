@@ -97,13 +97,14 @@ class SearchPurchaseOrderServiceTest {
 
     @Test
     void ADMIN_역할_정상_조회() {
+        SearchPurchaseOrderQuery q = query();
         PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 0);
-        given(searchPurchaseOrderPort.search(query())).willReturn(expected);
+        given(searchPurchaseOrderPort.search(q)).willReturn(expected);
 
-        PurchaseOrderPage result = service.search(UserRole.ADMIN, query());
+        PurchaseOrderPage result = service.search(UserRole.ADMIN, q);
 
         assertThat(result).isEqualTo(expected);
-        verify(searchPurchaseOrderPort).search(query());
+        verify(searchPurchaseOrderPort).search(q);
     }
 
     @Test
