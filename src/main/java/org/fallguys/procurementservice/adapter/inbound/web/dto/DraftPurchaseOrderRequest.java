@@ -6,13 +6,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftCommand;
 import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
 
 import java.time.LocalDate;
 import java.util.List;
 
-public record CreateDraftPurchaseOrderRequest(
+public record DraftPurchaseOrderRequest(
         @NotBlank(message = "공급사 코드는 필수입니다.")
         String vendorCode,
 
@@ -28,12 +29,12 @@ public record CreateDraftPurchaseOrderRequest(
 
         @Size(max = 100, message = "발주 라인은 최대 100개까지 입력할 수 있습니다.")
         @Valid
-        List<CreatePurchaseOrderLineRequest> lines
+        List<PurchaseOrderLineRequest> lines
 ) {
     public CreatePurchaseOrderCommand toCommand(String userCode) {
-        List<CreatePurchaseOrderLineCommand> lineCommands = lines == null
+        List<PurchaseOrderLineCommand> lineCommands = lines == null
                 ? List.of()
-                : lines.stream().map(CreatePurchaseOrderLineRequest::toCommand).toList();
+                : lines.stream().map(PurchaseOrderLineRequest::toCommand).toList();
 
         return new CreatePurchaseOrderCommand(
                 userCode,
@@ -43,6 +44,21 @@ public record CreateDraftPurchaseOrderRequest(
                 memo,
                 lineCommands,
                 PurchaseOrderStatus.DRAFT
+        );
+    }
+
+    public UpdatePurchaseOrderDraftCommand toUpdateCommand(String code) {
+        List<PurchaseOrderLineCommand> lineCommands = lines == null
+                ? List.of()
+                : lines.stream().map(PurchaseOrderLineRequest::toCommand).toList();
+
+        return new UpdatePurchaseOrderDraftCommand(
+                code,
+                vendorCode,
+                warehouseCode,
+                desiredArrivalDate,
+                memo,
+                lineCommands
         );
     }
 }

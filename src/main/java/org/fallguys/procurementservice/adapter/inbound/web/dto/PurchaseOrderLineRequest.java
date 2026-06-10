@@ -4,11 +4,11 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
 
 import java.math.BigDecimal;
 
-public record CreatePurchaseOrderLineRequest(
+public record PurchaseOrderLineRequest(
         @NotBlank(message = "품목 코드는 필수입니다.")
         String itemSku,
 
@@ -19,7 +19,7 @@ public record CreatePurchaseOrderLineRequest(
         @DecimalMin(value = "0", message = "단가는 0 이상이어야 합니다.")
         BigDecimal unitPrice
 ) {
-    public CreatePurchaseOrderLineCommand toCommand() {
-        return new CreatePurchaseOrderLineCommand(itemSku, quantity, unitPrice);
+    public PurchaseOrderLineCommand toCommand() {
+        return new PurchaseOrderLineCommand(itemSku, quantity, unitPrice);
     }
 }
