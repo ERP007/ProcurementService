@@ -10,6 +10,7 @@ import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePo
 import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
@@ -110,7 +111,7 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
 
     private void validateRole(UserRole role) {
         if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(ProcurementErrorCode.FORBIDDEN);
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
     }
 

@@ -44,8 +44,8 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
     public PurchaseOrder save(PurchaseOrder purchaseOrder) {
         VendorEntity vendor = vendorJpaDao.findById(purchaseOrder.getVendorCode())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        ProcurementErrorCode.VENDOR_NOT_FOUND,
-                        ProcurementErrorCode.VENDOR_NOT_FOUND.getMessage() + ": " + purchaseOrder.getVendorCode()
+                        ProcurementErrorCode.VENDOR_NOT_FOUND_ON_DETAIL,
+                        ProcurementErrorCode.VENDOR_NOT_FOUND_ON_DETAIL.getMessage() + ": " + purchaseOrder.getVendorCode()
                 ));
         PurchaseOrderEntity entity = purchaseOrderJpaDao.findById(purchaseOrder.getCode())
                 .map(existing -> existing.update(purchaseOrder, vendor))

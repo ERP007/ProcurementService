@@ -6,6 +6,7 @@ import org.fallguys.procurementservice.application.port.outbound.LoadWarehouseIn
 import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ExternalServiceException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
@@ -60,8 +61,8 @@ public class WarehouseClientAdapter implements LoadWarehousePort, LoadWarehouseI
                     .body(WarehouseResponse.class);
             if (response == null) {
                 throw new ExternalServiceException(
-                        ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getCode(),
-                        ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getMessage(),
+                        CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                        CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                         null);
             }
             return response;
@@ -70,13 +71,13 @@ public class WarehouseClientAdapter implements LoadWarehousePort, LoadWarehouseI
                 throw new ResourceNotFoundException(ProcurementErrorCode.WAREHOUSE_NOT_FOUND);
             }
             throw new ExternalServiceException(
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         } catch (RestClientException e) {
             throw new ExternalServiceException(
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         }
     }

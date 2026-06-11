@@ -6,6 +6,7 @@ import org.fallguys.procurementservice.adapter.outbound.client.dto.InventoryInbo
 import org.fallguys.procurementservice.adapter.outbound.client.dto.InventoryInboundRequest;
 import org.fallguys.procurementservice.application.port.outbound.InboundStockPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ExternalServiceException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
@@ -56,13 +57,13 @@ public class InventoryClientAdapter implements InboundStockPort {
                 throw new BusinessValidationException(ProcurementErrorCode.INVENTORY_INBOUND_FAILED);
             }
             throw new ExternalServiceException(
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         } catch (RestClientException e) {
             throw new ExternalServiceException(
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.INVENTORY_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         }
     }

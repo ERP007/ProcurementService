@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
 import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
-import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.fallguys.procurementservice.domain.model.Vendor;
 import org.springframework.stereotype.Service;
@@ -42,7 +42,7 @@ public class SearchActiveVendorsService implements SearchActiveVendorsUseCase {
     @Transactional(readOnly = true)
     public List<Vendor> searchActiveVendors(UserRole role, String search) {
         if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(ProcurementErrorCode.FORBIDDEN);
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
         return loadVendorPort.findAllActiveByNameContaining(search);
     }

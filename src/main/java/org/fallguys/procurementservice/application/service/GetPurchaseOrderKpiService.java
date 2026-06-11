@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderKpiUseCase;
 import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderKpiPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
-import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.model.PurchaseOrderKpi;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
@@ -46,7 +46,7 @@ public class GetPurchaseOrderKpiService implements GetPurchaseOrderKpiUseCase {
     @Transactional(readOnly = true)
     public PurchaseOrderKpi getKpi(UserRole role) {
         if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(ProcurementErrorCode.FORBIDDEN);
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
         return loadPurchaseOrderKpiPort.loadKpi(LocalDate.now());
     }

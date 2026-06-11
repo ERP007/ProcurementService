@@ -7,6 +7,7 @@ import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrd
 import org.fallguys.procurementservice.application.port.outbound.LoadUsersPort;
 import org.fallguys.procurementservice.application.port.outbound.UserInfo;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
@@ -58,7 +59,7 @@ public class GetPurchaseOrderHistoriesService implements GetPurchaseOrderHistori
     @Transactional(readOnly = true)
     public List<PurchaseOrderHistoryEntry> getHistories(UserRole role, String code) {
         if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(ProcurementErrorCode.FORBIDDEN);
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
 
         PurchaseOrder order = loadPurchaseOrderPort.findByCode(code)
