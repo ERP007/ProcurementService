@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
+import org.hibernate.annotations.BatchSize;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,19 +25,27 @@ public class PurchaseOrderEntity {
     @Column(name = "code", nullable = false)
     private String code;
 
-    @Column(name = "vendor_code", nullable = false)
-    private String vendorCode;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_code", nullable = false)
+    private VendorEntity vendor;
+
+    @Column(name = "warehouse_code", nullable = false)
+    private String warehouseCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private PurchaseOrderStatus status;
 
-    @Column(name = "expected_arrival_date")
-    private LocalDate expectedArrivalDate;
+    @Column(name = "desired_arrival_date", nullable = false)
+    private LocalDate desiredArrivalDate;
 
     @Column(name = "memo", columnDefinition = "text")
     private String memo;
 
+    @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
+    private BigDecimal totalAmount;
+
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseOrderLineEntity> lines = new ArrayList<>();
 
@@ -53,11 +64,13 @@ public class PurchaseOrderEntity {
     public PurchaseOrder toDomain() {
         return new PurchaseOrder(
                 code,
-                vendorCode,
+                vendor.getCode(),
+                warehouseCode,
                 status,
-                expectedArrivalDate,
+                desiredArrivalDate,
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
+                new Money(totalAmount),
                 creation.toDomain(),
                 ApprovalEmbeddable.toDomain(approval),
                 ReceivingEmbeddable.toDomain(receiving),
@@ -65,13 +78,15 @@ public class PurchaseOrderEntity {
         );
     }
 
-    public static PurchaseOrderEntity from(PurchaseOrder po) {
+    public static PurchaseOrderEntity from(PurchaseOrder po, VendorEntity vendor) {
         PurchaseOrderEntity entity = new PurchaseOrderEntity(
                 po.getCode(),
-                po.getVendorCode(),
+                vendor,
+                po.getWarehouseCode(),
                 po.getStatus(),
-                po.getExpectedArrivalDate(),
+                po.getDesiredArrivalDate(),
                 po.getMemo(),
+                BigDecimal.ZERO,
                 new ArrayList<>(),
                 CreationEmbeddable.from(po.getCreation()),
                 ApprovalEmbeddable.from(po.getApproval()),
@@ -81,12 +96,15 @@ public class PurchaseOrderEntity {
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, entity))
                 .forEach(entity.lines::add);
+        entity.totalAmount = computeTotalAmount(entity.lines);
         return entity;
     }
 
-    public PurchaseOrderEntity update(PurchaseOrder po) {
+    public PurchaseOrderEntity update(PurchaseOrder po, VendorEntity vendor) {
+        this.vendor = vendor;
+        this.warehouseCode = po.getWarehouseCode();
         this.status = po.getStatus();
-        this.expectedArrivalDate = po.getExpectedArrivalDate();
+        this.desiredArrivalDate = po.getDesiredArrivalDate();
         this.memo = po.getMemo();
         this.approval = ApprovalEmbeddable.from(po.getApproval());
         this.receiving = ReceivingEmbeddable.from(po.getReceiving());
@@ -95,6 +113,13 @@ public class PurchaseOrderEntity {
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, this))
                 .forEach(this.lines::add);
+        this.totalAmount = computeTotalAmount(this.lines);
         return this;
+    }
+
+    private static BigDecimal computeTotalAmount(List<PurchaseOrderLineEntity> lines) {
+        return lines.stream()
+                .map(PurchaseOrderLineEntity::getLineAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

@@ -12,5 +12,8 @@ public class PurchaseOrderLine {
     private String unitSnapshot;
     private int orderQuantity;
     private Money unitPrice;
-    private Money lineAmount;
+
+    public Money lineAmount() {
+        return unitPrice.multiply(orderQuantity);
+    }
 }
