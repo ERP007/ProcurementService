@@ -13,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
+            "/procurement/health",
             "/procurement-orders/health",
             "/procurement-orders/swagger-ui/**",
             "/procurement-orders/swagger-ui.html",

@@ -31,6 +31,9 @@ import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOr
 import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftUseCase;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.UserRole;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,6 +42,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "ProcurementOrder", description = "구매 발주 API")
 @RestController
 @RequestMapping("/procurement-orders")
 @RequiredArgsConstructor
@@ -55,19 +59,21 @@ public class ProcurementController {
     private final ReceivePurchaseOrderUseCase receivePurchaseOrderUseCase;
     private final CancelPurchaseOrderUseCase cancelPurchaseOrderUseCase;
 
+    @Operation(summary = "구매 발주 상세 조회")
     @GetMapping("/{code}")
     public ResponseEntity<PurchaseOrderDetailResponse> getDetail(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String code
+            @Parameter(description = "발주 코드") @PathVariable String code
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         return ResponseEntity.ok(PurchaseOrderDetailResponse.from(getPurchaseOrderUseCase.get(role, code)));
     }
 
+    @Operation(summary = "구매 발주 이력 조회", description = "발주 상태 변경 이력을 최신순으로 반환한다.")
     @GetMapping("/{code}/histories")
     public ResponseEntity<List<PurchaseOrderHistoryResponse>> getHistories(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String code
+            @Parameter(description = "발주 코드") @PathVariable String code
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         return ResponseEntity.ok(PurchaseOrderHistoryResponse.listFrom(
@@ -75,6 +81,7 @@ public class ProcurementController {
         ));
     }
 
+    @Operation(summary = "구매 발주 KPI 조회")
     @GetMapping("/kpi")
     public ResponseEntity<PurchaseOrderKpiResponse> getKpi(
             @AuthenticationPrincipal Jwt jwt
@@ -83,6 +90,7 @@ public class ProcurementController {
         return ResponseEntity.ok(PurchaseOrderKpiResponse.from(getPurchaseOrderKpiUseCase.getKpi(role)));
     }
 
+    @Operation(summary = "구매 발주 목록 조회", description = "날짜 범위·상태·벤더 필터와 페이지네이션으로 발주 목록을 조회한다.")
     @GetMapping
     public ResponseEntity<PurchaseOrderPageResponse> search(
             @AuthenticationPrincipal Jwt jwt,
@@ -94,10 +102,11 @@ public class ProcurementController {
         ));
     }
 
+    @Operation(summary = "활성 벤더 목록 조회", description = "active=true 벤더를 검색어로 필터링해 반환한다.")
     @GetMapping("/vendors")
     public ResponseEntity<List<VendorResponse>> searchActiveVendors(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(required = false) String search
+            @Parameter(description = "벤더명·코드 검색어 (선택)") @RequestParam(required = false) String search
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         List<VendorResponse> result = searchActiveVendorsUseCase.searchActiveVendors(role, search)
@@ -107,6 +116,7 @@ public class ProcurementController {
         return ResponseEntity.ok(result);
     }
 
+    @Operation(summary = "구매 발주 임시저장", description = "DRAFT 상태로 발주를 생성한다.")
     @PostMapping("/drafts")
     public ResponseEntity<CreatePurchaseOrderResponse> createDraft(
             @AuthenticationPrincipal Jwt jwt,
@@ -118,10 +128,11 @@ public class ProcurementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(CreatePurchaseOrderResponse.from(created));
     }
 
+    @Operation(summary = "구매 발주 임시저장 수정", description = "DRAFT 발주 내용을 수정한다.")
     @PutMapping("/{code}")
     public ResponseEntity<CreatePurchaseOrderResponse> updateDraft(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String code,
+            @Parameter(description = "발주 코드") @PathVariable String code,
             @RequestBody @Valid DraftPurchaseOrderRequest request
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
@@ -129,10 +140,11 @@ public class ProcurementController {
         return ResponseEntity.ok(CreatePurchaseOrderResponse.from(updated));
     }
 
+    @Operation(summary = "구매 발주 입고 처리", description = "APPROVED 발주를 RECEIVED로 전환하고 재고 입고를 기록한다.")
     @PatchMapping("/{code}/receive")
     public ResponseEntity<ReceivePurchaseOrderResponse> receive(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String code,
+            @Parameter(description = "발주 코드") @PathVariable String code,
             @RequestBody @Valid ReceivePurchaseOrderRequest request
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
@@ -142,10 +154,11 @@ public class ProcurementController {
         return ResponseEntity.ok(ReceivePurchaseOrderResponse.from(received));
     }
 
+    @Operation(summary = "구매 발주 승인", description = "REQUESTED 발주를 APPROVED로 전환한다.")
     @PatchMapping("/{code}/approve")
     public ResponseEntity<ApprovePurchaseOrderResponse> approve(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String code
+            @Parameter(description = "발주 코드") @PathVariable String code
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
@@ -153,10 +166,11 @@ public class ProcurementController {
         return ResponseEntity.ok(ApprovePurchaseOrderResponse.from(approved));
     }
 
+    @Operation(summary = "구매 발주 취소", description = "발주를 CANCELED로 전환한다.")
     @PatchMapping("/{code}/cancel")
     public ResponseEntity<CancelPurchaseOrderResponse> cancel(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String code,
+            @Parameter(description = "발주 코드") @PathVariable String code,
             @RequestBody @Valid CancelPurchaseOrderRequest request
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
@@ -165,6 +179,7 @@ public class ProcurementController {
         return ResponseEntity.ok(CancelPurchaseOrderResponse.from(canceled));
     }
 
+    @Operation(summary = "구매 발주 생성(즉시 제출)", description = "REQUESTED 상태로 발주를 생성한다.")
     @PostMapping
     public ResponseEntity<CreatePurchaseOrderResponse> createPurchaseOrder(
             @AuthenticationPrincipal Jwt jwt,
