@@ -6,6 +6,7 @@ import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOr
 import org.fallguys.procurementservice.application.port.outbound.SearchPurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.model.PurchaseOrderPage;
 import org.fallguys.procurementservice.domain.model.UserRole;
@@ -48,7 +49,7 @@ public class SearchPurchaseOrderService implements SearchPurchaseOrderUseCase {
     @Transactional(readOnly = true)
     public PurchaseOrderPage search(UserRole role, SearchPurchaseOrderQuery query) {
         if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(ProcurementErrorCode.FORBIDDEN);
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
         validateDateRange(query.startDate(), query.endDate());
         return searchPurchaseOrderPort.search(query);
@@ -57,14 +58,14 @@ public class SearchPurchaseOrderService implements SearchPurchaseOrderUseCase {
     private void validateDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate.isAfter(endDate)) {
             throw new BusinessValidationException(
-                    ProcurementErrorCode.INVALID_QUERY_PARAMETER,
+                    ProcurementErrorCode.INVALID_QUERY_DATE_RANGE,
                     "시작일(" + startDate + ")은 종료일(" + endDate + ")보다 이전이어야 합니다."
             );
         }
         long days = ChronoUnit.DAYS.between(startDate, endDate);
         if (days > 365) {
             throw new BusinessValidationException(
-                    ProcurementErrorCode.INVALID_QUERY_PARAMETER,
+                    ProcurementErrorCode.INVALID_QUERY_DATE_PERIOD,
                     "조회 기간은 최대 365일입니다. 현재 요청: " + days + "일"
             );
         }

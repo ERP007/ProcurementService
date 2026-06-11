@@ -162,7 +162,7 @@ class ReceivePurchaseOrderServiceTest {
     void 재고_서비스_실패시_저장_안됨() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
         willThrow(new org.fallguys.procurementservice.domain.exception.ExternalServiceException(
-                "PO-07-02", "재고 서비스 호출에 실패했습니다.", null))
+                "ER-502", "일시적으로 서비스를 이용할 수 없습니다.", null))
                 .given(inboundStockPort).inbound(any());
 
         assertThatThrownBy(() -> service.receive(UserRole.ADMIN, command()))

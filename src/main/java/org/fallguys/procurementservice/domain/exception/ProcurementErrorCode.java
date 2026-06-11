@@ -5,29 +5,29 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum ProcurementErrorCode {
+public enum ProcurementErrorCode implements ErrorCode {
 
-    UNAUTHORIZED("PO-01-01", "인증 정보가 유효하지 않습니다."),
-    FORBIDDEN("PO-01-02", "접근 권한이 없습니다."),
+    PURCHASE_ORDER_NOT_FOUND("PO-001", "발주서를 찾을 수 없습니다."),
+    VENDOR_NOT_FOUND("PO-002", "활성 공급사를 찾을 수 없습니다."),
+    VENDOR_NOT_FOUND_ON_DETAIL("PO-003", "공급사를 찾을 수 없습니다."),
+    WAREHOUSE_NOT_FOUND("PO-004", "창고를 찾을 수 없습니다."),
+    ITEM_NOT_FOUND("PO-005", "존재하지 않는 품목이 포함되어 있습니다."),
 
-    VENDOR_NOT_FOUND("PO-02-01", "공급사를 찾을 수 없습니다."),
-    WAREHOUSE_NOT_FOUND("PO-02-02", "창고를 찾을 수 없습니다."),
-    ITEM_NOT_FOUND("PO-02-03", "존재하지 않는 품목이 포함되어 있습니다."),
-    PURCHASE_ORDER_NOT_FOUND("PO-02-04", "발주서를 찾을 수 없습니다."),
+    VALIDATION_FAILED("PO-006", "요청 형식이 올바르지 않습니다."),
+    DESIRED_ARRIVAL_DATE_TOO_FAR("PO-007", "도착 희망일은 오늘로부터 1년 이내여야 합니다."),
+    DUPLICATE_ITEM_CODE("PO-008", "동일한 품목 코드가 중복되어 있습니다."),
+    ITEM_INACTIVE("PO-009", "비활성 품목이 포함되어 있습니다."),
+    WAREHOUSE_INACTIVE("PO-010", "비활성 창고입니다."),
+    PURCHASE_ORDER_NOT_DRAFT("PO-011", "DRAFT 상태인 발주서만 수정할 수 있습니다."),
+    PURCHASE_ORDER_NOT_APPROVED("PO-012", "APPROVED 상태인 발주서만 입고 처리할 수 있습니다."),
+    PURCHASE_ORDER_NOT_CANCELABLE("PO-013", "DRAFT 또는 APPROVED 상태인 발주서만 취소할 수 있습니다."),
 
-    DUPLICATE_ITEM_CODE("PO-03-01", "동일한 품목 코드가 중복되어 있습니다."),
-    DESIRED_ARRIVAL_DATE_TOO_FAR("PO-03-02", "도착 희망일은 오늘로부터 1년 이내여야 합니다."),
-    ITEM_INACTIVE("PO-03-03", "비활성 품목이 포함되어 있습니다."),
-    WAREHOUSE_INACTIVE("PO-03-04", "비활성 창고입니다."),
-    PURCHASE_ORDER_NOT_DRAFT("PO-03-05", "DRAFT 상태인 발주서만 수정할 수 있습니다."),
-    PURCHASE_ORDER_NOT_APPROVED("PO-03-06", "APPROVED 상태인 발주서만 입고 처리할 수 있습니다."),
-    PURCHASE_ORDER_NOT_CANCELABLE("PO-03-08", "DRAFT 또는 APPROVED 상태인 발주서만 취소할 수 있습니다."),
-    INVALID_QUERY_PARAMETER("PO-03-07", "유효하지 않은 조회 파라미터입니다."),
+    INVALID_QUERY_SIZE("PO-014", "size는 10, 20, 50 중 하나여야 합니다."),
+    INVALID_QUERY_STATUS("PO-015", "유효하지 않은 status입니다."),
+    INVALID_QUERY_DATE_RANGE("PO-016", "시작일은 종료일보다 이전이어야 합니다."),
+    INVALID_QUERY_DATE_PERIOD("PO-017", "조회 기간은 최대 365일입니다."),
 
-    ITEM_SERVICE_ERROR("PO-07-01", "아이템 서비스 호출에 실패했습니다."),
-    INVENTORY_SERVICE_ERROR("PO-07-02", "재고 서비스 호출에 실패했습니다."),
-    USER_SERVICE_ERROR("PO-07-03", "유저 서비스 호출에 실패했습니다."),
-    INVENTORY_INBOUND_FAILED("PO-07-04", "재고 입고 처리에 실패했습니다.");
+    INVENTORY_INBOUND_FAILED("PO-018", "재고 입고 처리에 실패했습니다.");
 
     private final String code;
     private final String message;

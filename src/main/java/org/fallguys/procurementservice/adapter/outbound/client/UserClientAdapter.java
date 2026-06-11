@@ -7,8 +7,8 @@ import org.fallguys.procurementservice.adapter.outbound.client.dto.UserResponse;
 import org.fallguys.procurementservice.application.port.outbound.LoadUserPort;
 import org.fallguys.procurementservice.application.port.outbound.LoadUsersPort;
 import org.fallguys.procurementservice.application.port.outbound.UserInfo;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ExternalServiceException;
-import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -60,13 +60,13 @@ public class UserClientAdapter implements LoadUserPort, LoadUsersPort {
                 return Optional.empty();
             }
             throw new ExternalServiceException(
-                    ProcurementErrorCode.USER_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.USER_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         } catch (RestClientException e) {
             throw new ExternalServiceException(
-                    ProcurementErrorCode.USER_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.USER_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         }
     }
@@ -96,8 +96,8 @@ public class UserClientAdapter implements LoadUserPort, LoadUsersPort {
                     .body(UserBatchResponse.class);
         } catch (RestClientException e) {
             throw new ExternalServiceException(
-                    ProcurementErrorCode.USER_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.USER_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         }
 

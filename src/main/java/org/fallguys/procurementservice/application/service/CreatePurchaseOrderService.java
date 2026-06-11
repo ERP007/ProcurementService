@@ -105,7 +105,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
 
     private void validateRole(UserRole role) {
         if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(ProcurementErrorCode.FORBIDDEN);
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
     }
 

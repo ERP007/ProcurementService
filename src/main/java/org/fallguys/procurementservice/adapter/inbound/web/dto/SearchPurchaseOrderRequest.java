@@ -62,7 +62,7 @@ public record SearchPurchaseOrderRequest(
     private static void validateSize(int size) {
         if (!VALID_SIZES.contains(size)) {
             throw new BusinessValidationException(
-                    ProcurementErrorCode.INVALID_QUERY_PARAMETER,
+                    ProcurementErrorCode.INVALID_QUERY_SIZE,
                     "size는 10, 20, 50 중 하나여야 합니다. 입력값: " + size
             );
         }
@@ -81,7 +81,7 @@ public record SearchPurchaseOrderRequest(
                         return PurchaseOrderStatus.valueOf(s);
                     } catch (IllegalArgumentException e) {
                         throw new BusinessValidationException(
-                                ProcurementErrorCode.INVALID_QUERY_PARAMETER,
+                                ProcurementErrorCode.INVALID_QUERY_STATUS,
                                 "'" + s + "'는 유효하지 않은 status입니다."
                         );
                     }

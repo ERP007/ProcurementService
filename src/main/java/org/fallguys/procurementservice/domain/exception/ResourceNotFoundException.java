@@ -2,11 +2,11 @@ package org.fallguys.procurementservice.domain.exception;
 
 public class ResourceNotFoundException extends BusinessException {
 
-    public ResourceNotFoundException(ProcurementErrorCode errorCode) {
+    public ResourceNotFoundException(ErrorCode errorCode) {
         super(errorCode.getCode(), errorCode.getMessage());
     }
 
-    public ResourceNotFoundException(ProcurementErrorCode errorCode, String message) {
+    public ResourceNotFoundException(ErrorCode errorCode, String message) {
         super(errorCode.getCode(), message);
     }
 }

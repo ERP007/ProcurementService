@@ -10,6 +10,7 @@ import org.fallguys.procurementservice.application.port.outbound.LoadWarehouseIn
 import org.fallguys.procurementservice.application.port.outbound.UserInfo;
 import org.fallguys.procurementservice.application.port.outbound.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.PurchaseOrder;
@@ -59,14 +60,14 @@ public class GetPurchaseOrderService implements GetPurchaseOrderUseCase {
     @Transactional(readOnly = true)
     public GetPurchaseOrderResult get(UserRole role, String code) {
         if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(ProcurementErrorCode.FORBIDDEN);
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
 
         PurchaseOrder order = loadPurchaseOrderPort.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND));
 
         Vendor vendor = loadVendorPort.findByCode(order.getVendorCode())
-                .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.VENDOR_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.VENDOR_NOT_FOUND_ON_DETAIL));
 
         WarehouseInfo warehouse = loadWarehouseInfoPort.findByCode(order.getWarehouseCode());
 

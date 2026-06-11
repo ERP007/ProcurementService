@@ -6,6 +6,7 @@ import org.fallguys.procurementservice.adapter.outbound.client.dto.ItemBatchResp
 import org.fallguys.procurementservice.application.port.outbound.ItemInfo;
 import org.fallguys.procurementservice.application.port.outbound.LoadItemPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
+import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ExternalServiceException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
@@ -54,15 +55,15 @@ public class ItemClientAdapter implements LoadItemPort {
                     .body(ItemBatchResponse.class);
         } catch (RestClientException e) {
             throw new ExternalServiceException(
-                    ProcurementErrorCode.ITEM_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.ITEM_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     e);
         }
 
         if (response == null) {
             throw new ExternalServiceException(
-                    ProcurementErrorCode.ITEM_SERVICE_ERROR.getCode(),
-                    ProcurementErrorCode.ITEM_SERVICE_ERROR.getMessage(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getCode(),
+                    CommonErrorCode.EXTERNAL_SERVICE_ERROR.getMessage(),
                     null);
         }
 
