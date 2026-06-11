@@ -6,7 +6,7 @@ pipeline {
         SERVER_BASE = '/home/taehyung/apps/msa-server'
         SERVICE_DIR = 'procurement-service'
         COMPOSE_SERVICE = 'procurement-service'
-        HEALTH_URL = 'https://api.erp007.xyz/api/procurement/health'
+        HEALTH_URL = 'https://api.erp007.xyz/api/procurement-orders/health'
     }
 
     stages {

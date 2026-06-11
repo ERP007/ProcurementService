@@ -1,35 +1,31 @@
 client:
   inventory:
-    base-url: ${INVENTORY_SERVICE_URL:http://localhost:8082}
+    base-url: ${INVENTORY_SERVICE_URL:http://inventory-service:8080}
   item:
-    base-url: ${ITEM_SERVICE_URL:http://localhost:8083}
+    base-url: ${ITEM_SERVICE_URL:http://item-service:8080}
   user:
-    base-url: ${USER_SERVICE_URL:http://localhost:8084}
+    base-url: ${USER_SERVICE_URL:http://user-service:8080}
 
 spring:
   application:
-    name: procurementService
+    name: procurement-service
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/erp/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:https://auth.erp007.xyz/realms/master}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:https://auth.erp007.xyz/realms/master/protocol/openid-connect/certs}
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:procurement}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://procurement-postgres:5432/procurement_db}
+    username: ${SPRING_DATASOURCE_USERNAME:procurement_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:none}
     properties:
       hibernate:
         format_sql: true
-        # ddl-auto=create/create-drop로 스키마를 새로 만든 직후 import.sql을 1회 실행(로컬 시드). update/validate에선 미실행.
-        hbm2ddl:
-          import_files: /import.sql
-          import_files_sql_extractor: org.hibernate.tool.schema.internal.script.MultiLineSqlScriptExtractor
-          charset_name: UTF-8
     open-in-view: false
 
 springdoc:
