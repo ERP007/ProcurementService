@@ -27,10 +27,10 @@ public class PurchaseOrderLineEntity {
     @Column(name = "item_sku", nullable = false)
     private String itemSku;
 
-    @Column(name = "item_name_snapshot", nullable = false)
+    @Column(name = "item_name_snapshot")
     private String itemNameSnapshot;
 
-    @Column(name = "unit_snapshot", nullable = false)
+    @Column(name = "unit_snapshot")
     private String unitSnapshot;
 
     @Column(name = "order_quantity", nullable = false)
