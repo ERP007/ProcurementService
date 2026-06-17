@@ -47,6 +47,7 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
      * 흐름:
      * 1) 역할 검증: ADMIN·HQ_MANAGER·HQ_STAFF만 허용.
      * 2) 발주서 조회: 미존재 시 404.
+     * 2-1) 상태 가드: DRAFT가 아니면 불필요한 외부 호출 전에 fail-fast (도메인 approve()가 최종 방어).
      * 3) 비즈니스 검증: 라인 1개 이상, 도착 희망일 과거 불가·1년 이내.
      *    (DRAFT 저장 시점 이후 상태가 변할 수 있으므로 승인 시점에 재검증한다.)
      * 4) 공급사 조회: 미존재·비활성 시 404. (DRAFT 저장 후 벤더가 비활성화됐을 수 있다.)
@@ -65,7 +66,7 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
      * - 공급사·창고 미존재: ResourceNotFoundException (404)
      * - 비활성 창고: BusinessValidationException (400)
      * - 존재하지 않는 SKU 포함: ResourceNotFoundException (404)
-     * - DRAFT 아닌 상태: BusinessValidationException (400, 도메인이 던짐)
+     * - DRAFT 아닌 상태: BusinessValidationException (400)
      */
     @Override
     @Transactional
@@ -79,6 +80,10 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
                         ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND,
                         ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND.getMessage() + ": " + command.code()
                 ));
+
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.DRAFT) {
+            throw new BusinessValidationException(ProcurementErrorCode.PURCHASE_ORDER_NOT_DRAFT);
+        }
 
         validateHasLines(purchaseOrder.getLines());
         validateDesiredArrivalDate(purchaseOrder.getDesiredArrivalDate());
