@@ -24,7 +24,6 @@ import java.util.List;
 public class InventoryClientAdapter implements InboundStockPort {
 
     private static final String INBOUND_PATH = "/internal/inventory/stocks/inbound";
-    private static final String INBOUND_SOURCE_TYPE = "PO";
 
     private final RestClient inventoryRestClient;
 
@@ -75,6 +74,6 @@ public class InventoryClientAdapter implements InboundStockPort {
                         line.getOrderQuantity(),
                         line.getId()))
                 .toList();
-        return new InventoryInboundRequest(INBOUND_SOURCE_TYPE, order.getCode(), order.getWarehouseCode(), lines);
+        return new InventoryInboundRequest(order.getCode(), order.getWarehouseCode(), lines);
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,13 +33,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             @NonNull HttpHeaders headers,
             @NonNull HttpStatusCode status,
             @NonNull WebRequest request) {
+        // 프론트는 detail을 그대로 노출하므로 필드명은 빼고 첫 번째 검증 메시지만 detail로 사용한다.
         String detail = ex.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .filter(msg -> msg != null && !msg.isBlank())
+                .findFirst()
+                .orElse(ProcurementErrorCode.VALIDATION_FAILED.getMessage());
+        // 디버깅용 로그에는 어떤 필드가 실패했는지 전부 남긴다.
+        String logDetail = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-        if (detail.isBlank()) {
-            detail = ProcurementErrorCode.VALIDATION_FAILED.getMessage();
-        }
-        log.warn("Validation failed: code={}, detail={}", ProcurementErrorCode.VALIDATION_FAILED.getCode(), detail);
+        log.warn("Validation failed: code={}, detail={}", ProcurementErrorCode.VALIDATION_FAILED.getCode(), logDetail);
         ProblemDetail pd = build(HttpStatus.BAD_REQUEST, ProcurementErrorCode.VALIDATION_FAILED.getCode(), detail);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
     }
