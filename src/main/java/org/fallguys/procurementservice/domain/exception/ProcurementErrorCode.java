@@ -27,7 +27,10 @@ public enum ProcurementErrorCode implements ErrorCode {
     INVALID_QUERY_DATE_RANGE("PO-016", "시작일은 종료일보다 이전이어야 합니다."),
     INVALID_QUERY_DATE_PERIOD("PO-017", "조회 기간은 최대 365일입니다."),
 
-    INVENTORY_INBOUND_FAILED("PO-018", "재고 입고 처리에 실패했습니다.");
+    INVENTORY_INBOUND_FAILED("PO-018", "재고 입고 처리에 실패했습니다."),
+
+    EMPTY_PURCHASE_ORDER_LINE("PO-019", "발주 라인은 1개 이상이어야 합니다."),
+    DESIRED_ARRIVAL_DATE_IN_PAST("PO-020", "도착 희망일은 오늘 이후여야 합니다.");
 
     private final String code;
     private final String message;
