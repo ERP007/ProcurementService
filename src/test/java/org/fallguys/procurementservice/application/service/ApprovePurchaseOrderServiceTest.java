@@ -1,17 +1,23 @@
 package org.fallguys.procurementservice.application.service;
 
-import org.fallguys.procurementservice.application.port.inbound.ApprovePurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.outbound.ItemInfo;
-import org.fallguys.procurementservice.application.port.outbound.LoadItemPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
-import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.inbound.command.ApprovePurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -232,7 +238,7 @@ class ApprovePurchaseOrderServiceTest {
 
         PurchaseOrder result = service.approve(UserRole.ADMIN, command());
 
-        PurchaseOrderLine line = result.getLines().get(0);
+        PurchaseOrderLine line = result.getLines().getFirst();
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
         assertThat(line.getItemNameSnapshot()).isEqualTo("브레이크 패드");
         assertThat(line.getUnitSnapshot()).isEqualTo("EA");

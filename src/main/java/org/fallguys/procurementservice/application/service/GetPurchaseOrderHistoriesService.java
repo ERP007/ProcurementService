@@ -1,17 +1,17 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderHistoriesUseCase;
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderHistoryEntry;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadUsersPort;
-import org.fallguys.procurementservice.application.port.outbound.UserInfo;
+import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderHistoriesUseCase;
+import org.fallguys.procurementservice.application.port.inbound.model.PurchaseOrderHistoryEntry;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadUsersPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserInfo;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
-import org.fallguys.procurementservice.domain.model.PurchaseOrder;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

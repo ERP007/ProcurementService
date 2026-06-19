@@ -1,17 +1,22 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderUseCase;
-import org.fallguys.procurementservice.application.port.outbound.GeneratePoCodePort;
-import org.fallguys.procurementservice.application.port.outbound.ItemInfo;
-import org.fallguys.procurementservice.application.port.outbound.LoadItemPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
-import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.inbound.command.CreatePurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.inbound.command.PurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.usecase.CreatePurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.outbound.port.GeneratePoCodePort;
+import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.*;
 import org.fallguys.procurementservice.domain.model.*;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

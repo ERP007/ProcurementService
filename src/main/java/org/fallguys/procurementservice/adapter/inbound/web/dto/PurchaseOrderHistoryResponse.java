@@ -1,6 +1,6 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderHistoryEntry;
+import org.fallguys.procurementservice.application.port.inbound.model.PurchaseOrderHistoryEntry;
 
 import java.time.Instant;
 import java.util.List;

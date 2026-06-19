@@ -2,12 +2,12 @@ package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderSortField;
-import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOrderQuery;
-import org.fallguys.procurementservice.application.port.inbound.SortDirection;
+import org.fallguys.procurementservice.application.port.inbound.model.PurchaseOrderSortField;
+import org.fallguys.procurementservice.application.port.inbound.query.SearchPurchaseOrderQuery;
+import org.fallguys.procurementservice.application.port.inbound.model.SortDirection;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;

@@ -1,18 +1,18 @@
 package org.fallguys.procurementservice.application.service;
 
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderHistoryEntry;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadUsersPort;
-import org.fallguys.procurementservice.application.port.outbound.UserInfo;
+import org.fallguys.procurementservice.application.port.inbound.model.PurchaseOrderHistoryEntry;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadUsersPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserInfo;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.Money;
-import org.fallguys.procurementservice.domain.model.ProcurementOrderApproval;
-import org.fallguys.procurementservice.domain.model.ProcurementOrderCancellation;
-import org.fallguys.procurementservice.domain.model.ProcurementOrderCreation;
-import org.fallguys.procurementservice.domain.model.ProcurementOrderReceiving;
-import org.fallguys.procurementservice.domain.model.PurchaseOrder;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCancellation;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderReceiving;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -169,7 +169,7 @@ class GetPurchaseOrderHistoriesServiceTest {
         List<PurchaseOrderHistoryEntry> result = service.getHistories(UserRole.ADMIN, "PO-2026-05-0001");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).changedBy()).isNull();
+        assertThat(result.getFirst().changedBy()).isNull();
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────

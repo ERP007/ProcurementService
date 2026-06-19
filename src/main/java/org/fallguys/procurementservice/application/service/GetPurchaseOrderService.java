@@ -1,21 +1,21 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderResult;
-import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderUseCase;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadUserPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadWarehouseInfoPort;
-import org.fallguys.procurementservice.application.port.outbound.UserInfo;
-import org.fallguys.procurementservice.application.port.outbound.WarehouseInfo;
+import org.fallguys.procurementservice.application.port.inbound.model.GetPurchaseOrderResult;
+import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadUserPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserInfo;
+import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
-import org.fallguys.procurementservice.domain.model.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.UserRole;
-import org.fallguys.procurementservice.domain.model.Vendor;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

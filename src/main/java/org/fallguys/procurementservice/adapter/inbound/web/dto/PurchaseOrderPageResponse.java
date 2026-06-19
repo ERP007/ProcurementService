@@ -1,6 +1,6 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
-import org.fallguys.procurementservice.domain.model.PurchaseOrderPage;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderPage;
 
 import java.util.List;
 

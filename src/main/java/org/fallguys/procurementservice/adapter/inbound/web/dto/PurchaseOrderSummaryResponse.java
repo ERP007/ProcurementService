@@ -1,7 +1,7 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
-import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderSummary;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderSummary;
 
 import java.math.BigDecimal;
 import java.time.Instant;
