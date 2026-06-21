@@ -63,7 +63,7 @@ class UpdatePurchaseOrderDraftServiceTest {
                 LocalDate.now().plusDays(7), "기존 메모",
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                originalCreation, null, null, null
+                originalCreation
         );
     }
 
@@ -107,7 +107,7 @@ class UpdatePurchaseOrderDraftServiceTest {
                 LocalDate.now().plusDays(7), null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                originalCreation, null, null, null
+                originalCreation
         );
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(approvedPo));
 
@@ -221,7 +221,7 @@ class UpdatePurchaseOrderDraftServiceTest {
     }
 
     @Test
-    void 수정_성공_approval은_null() {
+    void 수정_성공_상태_DRAFT_유지() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(draftPo));
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
@@ -232,10 +232,7 @@ class UpdatePurchaseOrderDraftServiceTest {
         ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
         verify(savePurchaseOrderPort).save(captor.capture());
 
-        PurchaseOrder saved = captor.getValue();
-        assertThat(saved.getApproval()).isNull();
-        assertThat(saved.getReceiving()).isNull();
-        assertThat(saved.getCancellation()).isNull();
+        assertThat(captor.getValue().getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────
