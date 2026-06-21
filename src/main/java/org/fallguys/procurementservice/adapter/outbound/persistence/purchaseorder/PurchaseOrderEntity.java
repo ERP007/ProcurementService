@@ -54,6 +54,10 @@ public class PurchaseOrderEntity {
     @Embedded
     private CreationEmbeddable creation;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     public PurchaseOrder toDomain() {
         return new PurchaseOrder(
                 code,
@@ -78,7 +82,8 @@ public class PurchaseOrderEntity {
                 po.getMemo(),
                 po.getTotalAmount().amount(),
                 new ArrayList<>(),
-                CreationEmbeddable.from(po.getCreation())
+                CreationEmbeddable.from(po.getCreation()),
+                null
         );
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, entity))

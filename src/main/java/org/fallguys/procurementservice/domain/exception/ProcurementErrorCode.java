@@ -30,7 +30,8 @@ public enum ProcurementErrorCode implements ErrorCode {
     INVENTORY_INBOUND_FAILED("PO-018", "재고 입고 처리에 실패했습니다."),
 
     EMPTY_PURCHASE_ORDER_LINE("PO-019", "발주 라인은 1개 이상이어야 합니다."),
-    DESIRED_ARRIVAL_DATE_IN_PAST("PO-020", "도착 희망일은 오늘 이후여야 합니다.");
+    DESIRED_ARRIVAL_DATE_IN_PAST("PO-020", "도착 희망일은 오늘 이후여야 합니다."),
+    PURCHASE_ORDER_CONFLICT("PO-021", "다른 사용자가 먼저 발주서를 변경했습니다. 다시 시도해 주세요.");
 
     private final String code;
     private final String message;
