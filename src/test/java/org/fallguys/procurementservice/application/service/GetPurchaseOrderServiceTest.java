@@ -2,6 +2,7 @@ package org.fallguys.procurementservice.application.service;
 
 import org.fallguys.procurementservice.application.port.inbound.model.GetPurchaseOrderResult;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderStatusHistoriesPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadUserPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
@@ -10,10 +11,10 @@ import org.fallguys.procurementservice.application.port.outbound.model.Warehouse
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.Money;
-import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class GetPurchaseOrderServiceTest {
 
     @Mock private LoadPurchaseOrderPort loadPurchaseOrderPort;
+    @Mock private LoadPurchaseOrderStatusHistoriesPort loadPurchaseOrderStatusHistoriesPort;
     @Mock private LoadVendorPort loadVendorPort;
     @Mock private LoadWarehouseInfoPort loadWarehouseInfoPort;
     @Mock private LoadUserPort loadUserPort;
@@ -54,7 +56,6 @@ class GetPurchaseOrderServiceTest {
     @BeforeEach
     void setUp() {
         ProcurementOrderCreation creation = new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-18T07:45:00Z"));
-        ProcurementOrderApproval approval = new ProcurementOrderApproval("EMP-002", Instant.parse("2026-05-18T09:00:00Z"));
 
         approvedPo = new PurchaseOrder(
                 "PO-2026-05-0001", "VD-01", "WD-01",
@@ -62,7 +63,7 @@ class GetPurchaseOrderServiceTest {
                 LocalDate.of(2026, 5, 24), null,
                 List.of(),
                 Money.of(BigDecimal.valueOf(14820000)),
-                creation, approval, null, null
+                creation
         );
 
         draftPo = new PurchaseOrder(
@@ -71,7 +72,7 @@ class GetPurchaseOrderServiceTest {
                 LocalDate.of(2026, 5, 24), null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                creation, null, null, null
+                creation
         );
 
         vendor = new Vendor("VD-01", "㈜동성정밀", "홍길동", "010-0000-0000", "서울시", true);
@@ -145,6 +146,10 @@ class GetPurchaseOrderServiceTest {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
         given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.of(vendor));
         given(loadWarehouseInfoPort.findByCode("WD-01")).willReturn(warehouseInfo);
+        given(loadPurchaseOrderStatusHistoriesPort.findByPoCode("PO-2026-05-0001")).willReturn(List.of(
+                new PurchaseOrderStatusHistory("PO-2026-05-0001", PurchaseOrderStatus.APPROVED, "EMP-002", null,
+                        Instant.parse("2026-05-18T09:00:00Z"))
+        ));
         given(loadUserPort.findByCode("EMP-002")).willReturn(Optional.of(userInfo));
 
         GetPurchaseOrderResult result = service.get(UserRole.HQ_MANAGER, "PO-2026-05-0001");
@@ -160,6 +165,10 @@ class GetPurchaseOrderServiceTest {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
         given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.of(vendor));
         given(loadWarehouseInfoPort.findByCode("WD-01")).willReturn(warehouseInfo);
+        given(loadPurchaseOrderStatusHistoriesPort.findByPoCode("PO-2026-05-0001")).willReturn(List.of(
+                new PurchaseOrderStatusHistory("PO-2026-05-0001", PurchaseOrderStatus.APPROVED, "EMP-002", null,
+                        Instant.parse("2026-05-18T09:00:00Z"))
+        ));
         given(loadUserPort.findByCode("EMP-002")).willReturn(Optional.empty());
 
         GetPurchaseOrderResult result = service.get(UserRole.ADMIN, "PO-2026-05-0001");

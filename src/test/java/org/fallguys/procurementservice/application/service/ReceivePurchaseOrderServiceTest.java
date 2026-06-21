@@ -5,14 +5,16 @@ import org.fallguys.procurementservice.application.port.outbound.port.InboundSto
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.Money;
-import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ReceivingPayload;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,7 @@ class ReceivePurchaseOrderServiceTest {
     @Mock private LoadWarehousePort loadWarehousePort;
     @Mock private InboundStockPort inboundStockPort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
+    @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     @InjectMocks
     private ReceivePurchaseOrderService service;
@@ -53,7 +56,6 @@ class ReceivePurchaseOrderServiceTest {
     @BeforeEach
     void setUp() {
         ProcurementOrderCreation creation = new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-01T09:00:00Z"));
-        ProcurementOrderApproval approval = new ProcurementOrderApproval("EMP-002", Instant.parse("2026-05-02T10:00:00Z"));
 
         approvedPo = new PurchaseOrder(
                 "PO-2026-05-0001", "VD-01", "WD-01",
@@ -61,7 +63,7 @@ class ReceivePurchaseOrderServiceTest {
                 LocalDate.of(2026, 5, 24), null,
                 List.of(),
                 Money.of(BigDecimal.valueOf(6000000)),
-                creation, approval, null, null
+                creation
         );
 
         draftPo = new PurchaseOrder(
@@ -70,7 +72,7 @@ class ReceivePurchaseOrderServiceTest {
                 LocalDate.of(2026, 5, 24), null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                creation, null, null, null
+                creation
         );
     }
 
@@ -141,9 +143,15 @@ class ReceivePurchaseOrderServiceTest {
         PurchaseOrder result = service.receive(UserRole.ADMIN, command());
 
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.RECEIVED);
-        assertThat(result.getReceiving()).isNotNull();
-        assertThat(result.getReceiving().receivedBy()).isEqualTo("EMP-001");
-        assertThat(result.getReceiving().receivedDate()).isEqualTo(LocalDate.of(2026, 5, 24));
+
+        ArgumentCaptor<PurchaseOrderStatusHistory> historyCaptor =
+                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
+        verify(savePurchaseOrderStatusHistoryPort).append(historyCaptor.capture());
+
+        PurchaseOrderStatusHistory history = historyCaptor.getValue();
+        assertThat(history.status()).isEqualTo(PurchaseOrderStatus.RECEIVED);
+        assertThat(history.actorCode()).isEqualTo("EMP-001");
+        assertThat(history.payload()).isEqualTo(new ReceivingPayload(LocalDate.of(2026, 5, 24)));
     }
 
     @Test

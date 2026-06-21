@@ -3,11 +3,14 @@ package org.fallguys.procurementservice.application.service;
 import org.fallguys.procurementservice.application.port.inbound.command.CancelPurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
 import org.fallguys.procurementservice.domain.model.purchaseorder.*;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.CancellationPayload;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +37,7 @@ class CancelPurchaseOrderServiceTest {
 
     @Mock private LoadPurchaseOrderPort loadPurchaseOrderPort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
+    @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     @InjectMocks
     private CancelPurchaseOrderService service;
@@ -51,7 +55,7 @@ class CancelPurchaseOrderServiceTest {
                 LocalDate.now().plusDays(7), "메모",
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                creation, null, null, null
+                creation
         );
 
         approvedPo = new PurchaseOrder(
@@ -60,9 +64,7 @@ class CancelPurchaseOrderServiceTest {
                 LocalDate.now().plusDays(7), "메모",
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                creation,
-                new ProcurementOrderApproval("EMP-001", Instant.now()),
-                null, null
+                creation
         );
     }
 
@@ -114,10 +116,7 @@ class CancelPurchaseOrderServiceTest {
                 LocalDate.now().plusDays(7), null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                new ProcurementOrderCreation("EMP-001", Instant.now()),
-                new ProcurementOrderApproval("EMP-001", Instant.now()),
-                new ProcurementOrderReceiving("EMP-001", Instant.now(), LocalDate.now()),
-                null
+                new ProcurementOrderCreation("EMP-001", Instant.now())
         );
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(receivedPo));
 
@@ -135,9 +134,7 @@ class CancelPurchaseOrderServiceTest {
                 LocalDate.now().plusDays(7), null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                new ProcurementOrderCreation("EMP-001", Instant.now()),
-                null, null,
-                new ProcurementOrderCancellation("EMP-001", Instant.now(), "이전 취소 사유")
+                new ProcurementOrderCreation("EMP-001", Instant.now())
         );
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(canceledPo));
 
@@ -157,10 +154,15 @@ class CancelPurchaseOrderServiceTest {
         PurchaseOrder result = service.cancel(UserRole.ADMIN, command());
 
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.CANCELED);
-        assertThat(result.getCancellation()).isNotNull();
-        assertThat(result.getCancellation().canceledBy()).isEqualTo("EMP-001");
-        assertThat(result.getCancellation().cancelReason()).isEqualTo("재발주 예정");
-        assertThat(result.getCancellation().canceledAt()).isNotNull();
+
+        ArgumentCaptor<PurchaseOrderStatusHistory> historyCaptor =
+                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
+        verify(savePurchaseOrderStatusHistoryPort).append(historyCaptor.capture());
+
+        PurchaseOrderStatusHistory history = historyCaptor.getValue();
+        assertThat(history.status()).isEqualTo(PurchaseOrderStatus.CANCELED);
+        assertThat(history.actorCode()).isEqualTo("EMP-001");
+        assertThat(history.payload()).isEqualTo(new CancellationPayload("재발주 예정"));
     }
 
     @Test
@@ -171,11 +173,11 @@ class CancelPurchaseOrderServiceTest {
         PurchaseOrder result = service.cancel(UserRole.HQ_MANAGER, command());
 
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.CANCELED);
-        assertThat(result.getCancellation().canceledBy()).isEqualTo("EMP-001");
+        verify(savePurchaseOrderStatusHistoryPort).append(any());
     }
 
     @Test
-    void 취소_성공_저장_시_cancellation_세팅됨() {
+    void 취소_성공_저장_시_상태_CANCELED로_변경() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(draftPo));
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -183,12 +185,12 @@ class CancelPurchaseOrderServiceTest {
 
         ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
         verify(savePurchaseOrderPort).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(PurchaseOrderStatus.CANCELED);
 
-        PurchaseOrder saved = captor.getValue();
-        assertThat(saved.getStatus()).isEqualTo(PurchaseOrderStatus.CANCELED);
-        assertThat(saved.getCancellation().canceledBy()).isEqualTo("EMP-001");
-        assertThat(saved.getCancellation().cancelReason()).isEqualTo("재발주 예정");
-        assertThat(saved.getReceiving()).isNull();
+        ArgumentCaptor<PurchaseOrderStatusHistory> historyCaptor =
+                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
+        verify(savePurchaseOrderStatusHistoryPort).append(historyCaptor.capture());
+        assertThat(historyCaptor.getValue().payload()).isEqualTo(new CancellationPayload("재발주 예정"));
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────

@@ -7,15 +7,16 @@ import org.fallguys.procurementservice.application.port.outbound.port.LoadPurcha
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
-import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ class ApprovePurchaseOrderServiceTest {
     @Mock private LoadVendorPort loadVendorPort;
     @Mock private LoadWarehousePort loadWarehousePort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
+    @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     @InjectMocks
     private ApprovePurchaseOrderService service;
@@ -74,7 +76,7 @@ class ApprovePurchaseOrderServiceTest {
                 LocalDate.now().plusDays(7), "메모",
                 List.of(draftLine),
                 Money.of(BigDecimal.valueOf(50000)),
-                creation, null, null, null
+                creation
         );
     }
 
@@ -85,7 +87,7 @@ class ApprovePurchaseOrderServiceTest {
                 desiredArrivalDate, "메모",
                 lines,
                 Money.of(BigDecimal.ZERO),
-                new ProcurementOrderCreation("EMP-001", Instant.now()), null, null, null
+                new ProcurementOrderCreation("EMP-001", Instant.now())
         );
     }
 
@@ -129,8 +131,7 @@ class ApprovePurchaseOrderServiceTest {
                 LocalDate.now().plusDays(7), null,
                 List.of(draftLine),
                 Money.of(BigDecimal.valueOf(50000)),
-                new ProcurementOrderCreation("EMP-001", Instant.now()),
-                new ProcurementOrderApproval("EMP-001", Instant.now()), null, null
+                new ProcurementOrderCreation("EMP-001", Instant.now())
         );
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(approvedPo));
 
@@ -246,7 +247,7 @@ class ApprovePurchaseOrderServiceTest {
     }
 
     @Test
-    void 승인_성공_저장_시_approval_세팅됨() {
+    void 승인_성공_저장_시_APPROVED_이력_기록됨() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(draftPoWithLine));
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
@@ -255,14 +256,16 @@ class ApprovePurchaseOrderServiceTest {
 
         service.approve(UserRole.HQ_STAFF, command());
 
-        ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
-        verify(savePurchaseOrderPort).save(captor.capture());
+        ArgumentCaptor<PurchaseOrderStatusHistory> historyCaptor =
+                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
+        verify(savePurchaseOrderStatusHistoryPort).append(historyCaptor.capture());
 
-        PurchaseOrder saved = captor.getValue();
-        assertThat(saved.getApproval().approvedBy()).isEqualTo("EMP-001");
-        assertThat(saved.getApproval().approvedAt()).isNotNull();
-        assertThat(saved.getReceiving()).isNull();
-        assertThat(saved.getCancellation()).isNull();
+        PurchaseOrderStatusHistory history = historyCaptor.getValue();
+        assertThat(history.poCode()).isEqualTo("PO-2026-06-0001");
+        assertThat(history.status()).isEqualTo(PurchaseOrderStatus.APPROVED);
+        assertThat(history.actorCode()).isEqualTo("EMP-001");
+        assertThat(history.payload()).isNull();
+        assertThat(history.createdAt()).isNotNull();
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────

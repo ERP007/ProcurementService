@@ -11,6 +11,7 @@ import org.fallguys.procurementservice.domain.exception.ResourceNotFoundExceptio
 import org.fallguys.procurementservice.domain.model.*;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +45,7 @@ class CreatePurchaseOrderServiceTest {
     @Mock private LoadItemPort loadItemPort;
     @Mock private GeneratePoCodePort generatePoCodePort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
+    @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     @InjectMocks
     private CreatePurchaseOrderService service;
@@ -165,7 +167,7 @@ class CreatePurchaseOrderServiceTest {
     }
 
     @Test
-    void 초안_저장_시_approval은_null() {
+    void 초안_저장_시_DRAFT_이력만_기록됨() {
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
@@ -175,12 +177,17 @@ class CreatePurchaseOrderServiceTest {
 
         ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
         verify(savePurchaseOrderPort).save(captor.capture());
+        assertThat(captor.getValue().getCreation().createdBy()).isEqualTo("EMP-001");
 
-        PurchaseOrder saved = captor.getValue();
-        assertThat(saved.getCreation().createdBy()).isEqualTo("EMP-001");
-        assertThat(saved.getApproval()).isNull();
-        assertThat(saved.getReceiving()).isNull();
-        assertThat(saved.getCancellation()).isNull();
+        ArgumentCaptor<PurchaseOrderStatusHistory> historyCaptor =
+                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
+        verify(savePurchaseOrderStatusHistoryPort).append(historyCaptor.capture());
+
+        PurchaseOrderStatusHistory history = historyCaptor.getValue();
+        assertThat(history.poCode()).isEqualTo("PO-2026-06-0001");
+        assertThat(history.status()).isEqualTo(PurchaseOrderStatus.DRAFT);
+        assertThat(history.actorCode()).isEqualTo("EMP-001");
+        assertThat(history.payload()).isNull();
     }
 
     // ── APPROVED 성공 ──────────────────────────────────────────────────────
@@ -221,7 +228,7 @@ class CreatePurchaseOrderServiceTest {
     }
 
     @Test
-    void APPROVED_생성_성공_approval_세팅됨() {
+    void APPROVED_생성_성공_APPROVED_이력만_기록됨() {
         PurchaseOrderLineCommand lineCmd = new PurchaseOrderLineCommand("SKU-001", 1, BigDecimal.valueOf(1000));
         ItemInfo itemInfo = new ItemInfo("SKU-001", "브레이크 패드", "EA");
 
@@ -233,13 +240,14 @@ class CreatePurchaseOrderServiceTest {
 
         service.create(UserRole.ADMIN, approvedCommandWithLines(List.of(lineCmd)));
 
-        ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
-        verify(savePurchaseOrderPort).save(captor.capture());
+        ArgumentCaptor<PurchaseOrderStatusHistory> historyCaptor =
+                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
+        verify(savePurchaseOrderStatusHistoryPort).append(historyCaptor.capture());
 
-        PurchaseOrder saved = captor.getValue();
-        assertThat(saved.getApproval()).isNotNull();
-        assertThat(saved.getApproval().approvedBy()).isEqualTo("EMP-001");
-        assertThat(saved.getApproval().approvedAt()).isNotNull();
+        PurchaseOrderStatusHistory history = historyCaptor.getValue();
+        assertThat(history.poCode()).isEqualTo("PO-2026-06-0001");
+        assertThat(history.status()).isEqualTo(PurchaseOrderStatus.APPROVED);
+        assertThat(history.actorCode()).isEqualTo("EMP-001");
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────
