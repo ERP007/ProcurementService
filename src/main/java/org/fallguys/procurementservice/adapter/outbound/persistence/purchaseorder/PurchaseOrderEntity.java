@@ -54,15 +54,6 @@ public class PurchaseOrderEntity {
     @Embedded
     private CreationEmbeddable creation;
 
-    @Embedded
-    private ApprovalEmbeddable approval;
-
-    @Embedded
-    private ReceivingEmbeddable receiving;
-
-    @Embedded
-    private CancellationEmbeddable cancellation;
-
     public PurchaseOrder toDomain() {
         return new PurchaseOrder(
                 code,
@@ -73,10 +64,7 @@ public class PurchaseOrderEntity {
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
                 new Money(totalAmount),
-                creation.toDomain(),
-                ApprovalEmbeddable.toDomain(approval),
-                ReceivingEmbeddable.toDomain(receiving),
-                CancellationEmbeddable.toDomain(cancellation)
+                creation.toDomain()
         );
     }
 
@@ -88,17 +76,13 @@ public class PurchaseOrderEntity {
                 po.getStatus(),
                 po.getDesiredArrivalDate(),
                 po.getMemo(),
-                BigDecimal.ZERO,
+                po.getTotalAmount().amount(),
                 new ArrayList<>(),
-                CreationEmbeddable.from(po.getCreation()),
-                ApprovalEmbeddable.from(po.getApproval()),
-                ReceivingEmbeddable.from(po.getReceiving()),
-                CancellationEmbeddable.from(po.getCancellation())
+                CreationEmbeddable.from(po.getCreation())
         );
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, entity))
                 .forEach(entity.lines::add);
-        entity.totalAmount = computeTotalAmount(entity.lines);
         return entity;
     }
 
@@ -108,20 +92,11 @@ public class PurchaseOrderEntity {
         this.status = po.getStatus();
         this.desiredArrivalDate = po.getDesiredArrivalDate();
         this.memo = po.getMemo();
-        this.approval = ApprovalEmbeddable.from(po.getApproval());
-        this.receiving = ReceivingEmbeddable.from(po.getReceiving());
-        this.cancellation = CancellationEmbeddable.from(po.getCancellation());
+        this.totalAmount = po.getTotalAmount().amount();
         this.lines.clear();
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, this))
                 .forEach(this.lines::add);
-        this.totalAmount = computeTotalAmount(this.lines);
         return this;
-    }
-
-    private static BigDecimal computeTotalAmount(List<PurchaseOrderLineEntity> lines) {
-        return lines.stream()
-                .map(PurchaseOrderLineEntity::getLineAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
