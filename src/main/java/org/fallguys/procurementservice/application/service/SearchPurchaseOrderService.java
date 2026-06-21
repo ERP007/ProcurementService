@@ -1,14 +1,14 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOrderQuery;
-import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOrderUseCase;
-import org.fallguys.procurementservice.application.port.outbound.SearchPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.inbound.query.SearchPurchaseOrderQuery;
+import org.fallguys.procurementservice.application.port.inbound.usecase.SearchPurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.outbound.port.SearchPurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderPage;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderPage;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

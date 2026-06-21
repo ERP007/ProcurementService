@@ -1,6 +1,6 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
-import org.fallguys.procurementservice.domain.model.Vendor;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 
 public record VendorResponse(
         String code,

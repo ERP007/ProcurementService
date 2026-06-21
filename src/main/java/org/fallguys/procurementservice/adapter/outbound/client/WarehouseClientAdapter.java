@@ -2,9 +2,9 @@ package org.fallguys.procurementservice.adapter.outbound.client;
 
 import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.adapter.outbound.client.dto.WarehouseResponse;
-import org.fallguys.procurementservice.application.port.outbound.LoadWarehouseInfoPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
-import org.fallguys.procurementservice.application.port.outbound.WarehouseInfo;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ExternalServiceException;

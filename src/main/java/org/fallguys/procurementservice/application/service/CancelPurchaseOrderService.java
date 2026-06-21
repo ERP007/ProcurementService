@@ -1,16 +1,19 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.CancelPurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.inbound.CancelPurchaseOrderUseCase;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.inbound.command.CancelPurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.inbound.usecase.CancelPurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
-import org.fallguys.procurementservice.domain.model.ProcurementOrderCancellation;
-import org.fallguys.procurementservice.domain.model.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.CancellationPayload;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,7 @@ public class CancelPurchaseOrderService implements CancelPurchaseOrderUseCase {
 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
+    private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     /**
      * 발주서를 취소한다.
@@ -57,8 +61,18 @@ public class CancelPurchaseOrderService implements CancelPurchaseOrderUseCase {
         PurchaseOrder order = loadPurchaseOrderPort.findByCode(command.code())
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND));
 
-        order.cancel(new ProcurementOrderCancellation(command.userCode(), Instant.now(), command.reason()));
+        order.cancel();
 
-        return savePurchaseOrderPort.save(order);
+        PurchaseOrder saved = savePurchaseOrderPort.save(order);
+
+        savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
+                saved.getCode(),
+                PurchaseOrderStatus.CANCELED,
+                command.userCode(),
+                new CancellationPayload(command.reason()),
+                Instant.now()
+        ));
+
+        return saved;
     }
 }

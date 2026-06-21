@@ -1,9 +1,9 @@
 package org.fallguys.procurementservice.application.service;
 
-import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.model.UserRole;
-import org.fallguys.procurementservice.domain.model.Vendor;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
