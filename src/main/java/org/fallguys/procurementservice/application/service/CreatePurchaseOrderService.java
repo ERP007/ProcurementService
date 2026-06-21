@@ -10,17 +10,16 @@ import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPo
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.*;
 import org.fallguys.procurementservice.domain.model.*;
-import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
-import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumSet;
@@ -44,6 +43,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
     private final LoadItemPort loadItemPort;
     private final GeneratePoCodePort generatePoCodePort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
+    private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     /**
      * 발주를 생성한다. (DRAFT: 임시 저장 / APPROVED: 즉시 승인)
@@ -86,11 +86,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 ? buildApprovedLines(command.lines())
                 : buildDraftLines(command.lines());
 
-        Money totalAmount = new Money(lines.stream()
-                .map(l -> l.lineAmount().amount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-
-        PurchaseOrder purchaseOrder = new PurchaseOrder(
+        PurchaseOrder purchaseOrder = PurchaseOrder.create(
                 code,
                 command.vendorCode(),
                 command.warehouseCode(),
@@ -98,14 +94,16 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 command.desiredArrivalDate(),
                 command.memo(),
                 lines,
-                totalAmount,
-                new ProcurementOrderCreation(command.userCode(), now),
-                isApproved ? new ProcurementOrderApproval(command.userCode(), now) : null,
-                null,
-                null
+                command.userCode(),
+                now
         );
 
-        return savePurchaseOrderPort.save(purchaseOrder);
+        PurchaseOrder saved = savePurchaseOrderPort.save(purchaseOrder);
+
+        savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
+                saved.getCode(), command.status(), command.userCode(), null, now));
+
+        return saved;
     }
 
     private void validateRole(UserRole role) {

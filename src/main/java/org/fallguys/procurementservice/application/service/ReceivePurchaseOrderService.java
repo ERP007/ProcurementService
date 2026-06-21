@@ -7,15 +7,20 @@ import org.fallguys.procurementservice.application.port.outbound.port.InboundSto
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ReceivingPayload;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -33,6 +38,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
     private final LoadWarehousePort loadWarehousePort;
     private final InboundStockPort inboundStockPort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
+    private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     /**
      * 발주서를 전량 입고 처리한다.
@@ -66,10 +72,20 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
 
         loadWarehousePort.verifyActive(order.getWarehouseCode());
 
-        order.receive(command.userCode(), command.receivedDate());
+        order.receive();
 
         inboundStockPort.inbound(order);
 
-        return savePurchaseOrderPort.save(order);
+        PurchaseOrder saved = savePurchaseOrderPort.save(order);
+
+        savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
+                saved.getCode(),
+                PurchaseOrderStatus.RECEIVED,
+                command.userCode(),
+                new ReceivingPayload(command.receivedDate()),
+                Instant.now()
+        ));
+
+        return saved;
     }
 }

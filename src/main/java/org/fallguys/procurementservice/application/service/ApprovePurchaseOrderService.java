@@ -9,15 +9,16 @@ import org.fallguys.procurementservice.application.port.outbound.port.LoadPurcha
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
-import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderApproval;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,7 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
     private final LoadVendorPort loadVendorPort;
     private final LoadWarehousePort loadWarehousePort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
+    private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
     /**
      * DRAFT 발주서를 승인한다.
@@ -99,12 +101,19 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
 
         List<PurchaseOrderLine> validatedLines = buildValidatedLines(purchaseOrder.getLines());
 
-        purchaseOrder.approve(
-                new ProcurementOrderApproval(command.userCode(), Instant.now()),
-                validatedLines
-        );
+        purchaseOrder.approve(validatedLines);
 
-        return savePurchaseOrderPort.save(purchaseOrder);
+        PurchaseOrder saved = savePurchaseOrderPort.save(purchaseOrder);
+
+        savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
+                saved.getCode(),
+                PurchaseOrderStatus.APPROVED,
+                command.userCode(),
+                null,
+                Instant.now()
+        ));
+
+        return saved;
     }
 
     private void validateHasLines(List<PurchaseOrderLine> lines) {

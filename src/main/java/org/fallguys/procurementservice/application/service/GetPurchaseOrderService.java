@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.model.GetPurchaseOrderResult;
 import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderStatusHistoriesPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadUserPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
@@ -14,12 +15,15 @@ import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -33,6 +37,7 @@ public class GetPurchaseOrderService implements GetPurchaseOrderUseCase {
     );
 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
+    private final LoadPurchaseOrderStatusHistoriesPort loadPurchaseOrderStatusHistoriesPort;
     private final LoadVendorPort loadVendorPort;
     private final LoadWarehouseInfoPort loadWarehouseInfoPort;
     private final LoadUserPort loadUserPort;
@@ -71,11 +76,18 @@ public class GetPurchaseOrderService implements GetPurchaseOrderUseCase {
 
         WarehouseInfo warehouse = loadWarehouseInfoPort.findByCode(order.getWarehouseCode());
 
-        UserInfo approvedByUser = null;
-        if (order.getApproval() != null) {
-            approvedByUser = loadUserPort.findByCode(order.getApproval().approvedBy()).orElse(null);
-        }
+        UserInfo approvedByUser = findApprover(code)
+                .flatMap(loadUserPort::findByCode)
+                .orElse(null);
 
         return new GetPurchaseOrderResult(order, vendor, warehouse, approvedByUser);
+    }
+
+    // 승인자는 가장 최근 APPROVED 이력의 담당자다(이력은 최신순 정렬).
+    private Optional<String> findApprover(String code) {
+        return loadPurchaseOrderStatusHistoriesPort.findByPoCode(code).stream()
+                .filter(h -> h.status() == PurchaseOrderStatus.APPROVED)
+                .map(PurchaseOrderStatusHistory::actorCode)
+                .findFirst();
     }
 }
