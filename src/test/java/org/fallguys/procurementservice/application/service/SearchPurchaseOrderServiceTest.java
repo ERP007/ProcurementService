@@ -1,13 +1,13 @@
 package org.fallguys.procurementservice.application.service;
 
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderSortField;
-import org.fallguys.procurementservice.application.port.inbound.SearchPurchaseOrderQuery;
-import org.fallguys.procurementservice.application.port.inbound.SortDirection;
-import org.fallguys.procurementservice.application.port.outbound.SearchPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.inbound.model.PurchaseOrderSortField;
+import org.fallguys.procurementservice.application.port.inbound.query.SearchPurchaseOrderQuery;
+import org.fallguys.procurementservice.application.port.inbound.model.SortDirection;
+import org.fallguys.procurementservice.application.port.outbound.port.SearchPurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderPage;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderPage;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

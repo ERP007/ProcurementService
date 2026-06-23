@@ -5,10 +5,10 @@ import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.fallguys.procurementservice.application.port.inbound.CreatePurchaseOrderCommand;
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
-import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftCommand;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderStatus;
+import org.fallguys.procurementservice.application.port.inbound.command.CreatePurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.inbound.command.PurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.command.UpdatePurchaseOrderDraftCommand;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 
 import java.time.LocalDate;
 import java.util.List;

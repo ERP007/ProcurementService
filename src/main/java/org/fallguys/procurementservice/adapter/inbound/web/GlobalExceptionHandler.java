@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.lang.NonNull;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -64,6 +65,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleBusiness(BusinessException ex) {
         log.warn("Business exception: code={}, message={}", ex.getCode(), ex.getMessage());
         return build(HttpStatus.BAD_REQUEST, ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        log.warn("Optimistic lock conflict: code={}, message={}",
+                ProcurementErrorCode.PURCHASE_ORDER_CONFLICT.getCode(), ex.getMessage());
+        return build(HttpStatus.CONFLICT,
+                ProcurementErrorCode.PURCHASE_ORDER_CONFLICT.getCode(),
+                ProcurementErrorCode.PURCHASE_ORDER_CONFLICT.getMessage());
     }
 
     @ExceptionHandler(ExternalServiceException.class)

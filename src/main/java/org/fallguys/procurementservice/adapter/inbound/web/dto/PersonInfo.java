@@ -1,6 +1,6 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
-import org.fallguys.procurementservice.application.port.outbound.UserInfo;
+import org.fallguys.procurementservice.application.port.outbound.model.UserInfo;
 
 public record PersonInfo(String code, String name, String position) {
 

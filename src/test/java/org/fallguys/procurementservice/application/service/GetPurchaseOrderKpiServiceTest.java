@@ -1,8 +1,8 @@
 package org.fallguys.procurementservice.application.service;
 
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderKpiPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderKpiPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderKpi;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderKpi;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

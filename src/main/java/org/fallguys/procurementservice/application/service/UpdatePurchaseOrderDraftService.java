@@ -1,23 +1,25 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
-import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftCommand;
-import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftUseCase;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
-import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.inbound.command.PurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.command.UpdatePurchaseOrderDraftCommand;
+import org.fallguys.procurementservice.application.port.inbound.usecase.UpdatePurchaseOrderDraftUseCase;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -87,26 +89,15 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
 
         List<PurchaseOrderLine> lines = buildDraftLines(command.lines());
 
-        Money totalAmount = new Money(lines.stream()
-                .map(l -> l.lineAmount().amount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-
-        PurchaseOrder updated = new PurchaseOrder(
-                existing.getCode(),
+        existing.updateDraft(
                 command.vendorCode(),
                 command.warehouseCode(),
-                PurchaseOrderStatus.DRAFT,
                 command.desiredArrivalDate(),
                 command.memo(),
-                lines,
-                totalAmount,
-                existing.getCreation(),
-                null,
-                null,
-                null
+                lines
         );
 
-        return savePurchaseOrderPort.save(updated);
+        return savePurchaseOrderPort.save(existing);
     }
 
     private void validateRole(UserRole role) {

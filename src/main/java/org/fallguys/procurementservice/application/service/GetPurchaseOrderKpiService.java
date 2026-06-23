@@ -1,11 +1,11 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.GetPurchaseOrderKpiUseCase;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderKpiPort;
+import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderKpiUseCase;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderKpiPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
-import org.fallguys.procurementservice.domain.model.PurchaseOrderKpi;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderKpi;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

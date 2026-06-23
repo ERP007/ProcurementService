@@ -1,16 +1,20 @@
 package org.fallguys.procurementservice.application.service;
 
-import org.fallguys.procurementservice.application.port.inbound.PurchaseOrderLineCommand;
-import org.fallguys.procurementservice.application.port.inbound.UpdatePurchaseOrderDraftCommand;
-import org.fallguys.procurementservice.application.port.outbound.LoadPurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
-import org.fallguys.procurementservice.application.port.outbound.LoadWarehousePort;
-import org.fallguys.procurementservice.application.port.outbound.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.inbound.command.PurchaseOrderLineCommand;
+import org.fallguys.procurementservice.application.port.inbound.command.UpdatePurchaseOrderDraftCommand;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
+import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,7 +63,7 @@ class UpdatePurchaseOrderDraftServiceTest {
                 LocalDate.now().plusDays(7), "기존 메모",
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                originalCreation, null, null, null
+                originalCreation
         );
     }
 
@@ -103,7 +107,7 @@ class UpdatePurchaseOrderDraftServiceTest {
                 LocalDate.now().plusDays(7), null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
-                originalCreation, null, null, null
+                originalCreation
         );
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(approvedPo));
 
@@ -217,7 +221,7 @@ class UpdatePurchaseOrderDraftServiceTest {
     }
 
     @Test
-    void 수정_성공_approval은_null() {
+    void 수정_성공_상태_DRAFT_유지() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(draftPo));
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
@@ -228,10 +232,7 @@ class UpdatePurchaseOrderDraftServiceTest {
         ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
         verify(savePurchaseOrderPort).save(captor.capture());
 
-        PurchaseOrder saved = captor.getValue();
-        assertThat(saved.getApproval()).isNull();
-        assertThat(saved.getReceiving()).isNull();
-        assertThat(saved.getCancellation()).isNull();
+        assertThat(captor.getValue().getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────

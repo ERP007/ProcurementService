@@ -1,12 +1,12 @@
 package org.fallguys.procurementservice.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.application.port.inbound.SearchActiveVendorsUseCase;
-import org.fallguys.procurementservice.application.port.outbound.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.inbound.usecase.SearchActiveVendorsUseCase;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.model.UserRole;
-import org.fallguys.procurementservice.domain.model.Vendor;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
