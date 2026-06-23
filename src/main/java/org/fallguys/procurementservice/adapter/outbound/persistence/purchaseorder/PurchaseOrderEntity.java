@@ -9,6 +9,7 @@ import org.fallguys.procurementservice.adapter.outbound.persistence.vendor.Vendo
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
 import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
@@ -58,6 +59,10 @@ public class PurchaseOrderEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "saga_status", nullable = false)
+    private SagaStatus sagaStatus;
+
     public PurchaseOrder toDomain() {
         return new PurchaseOrder(
                 code,
@@ -68,7 +73,8 @@ public class PurchaseOrderEntity {
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
                 new Money(totalAmount),
-                creation.toDomain()
+                creation.toDomain(),
+                sagaStatus
         );
     }
 
@@ -83,7 +89,8 @@ public class PurchaseOrderEntity {
                 po.getTotalAmount().amount(),
                 new ArrayList<>(),
                 CreationEmbeddable.from(po.getCreation()),
-                null
+                null,
+                po.getSagaStatus()
         );
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, entity))
@@ -98,6 +105,7 @@ public class PurchaseOrderEntity {
         this.desiredArrivalDate = po.getDesiredArrivalDate();
         this.memo = po.getMemo();
         this.totalAmount = po.getTotalAmount().amount();
+        this.sagaStatus = po.getSagaStatus();
         this.lines.clear();
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, this))

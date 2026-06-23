@@ -20,4 +20,15 @@ public record PurchaseOrderStatusHistory(
         StatusChangePayload payload,
         Instant createdAt
 ) {
+    public static PurchaseOrderStatusHistory of(
+            String poCode, PurchaseOrderStatus status, String actorCode,
+            StatusChangePayload payload, Instant createdAt) {
+        return new PurchaseOrderStatusHistory(poCode, status, actorCode, payload, createdAt);
+    }
+
+    // 부가 데이터 없는 전이(예: 자동 보상 롤백)용. payload는 null.
+    public static PurchaseOrderStatusHistory of(
+            String poCode, PurchaseOrderStatus status, String actorCode, Instant createdAt) {
+        return new PurchaseOrderStatusHistory(poCode, status, actorCode, null, createdAt);
+    }
 }

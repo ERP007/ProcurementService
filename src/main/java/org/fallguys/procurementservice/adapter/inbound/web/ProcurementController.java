@@ -146,8 +146,9 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
+        String userName = JwtClaimExtractor.extractUserName(jwt);
         PurchaseOrder received = receivePurchaseOrderUseCase.receive(role,
-                new ReceivePurchaseOrderCommand(code, userCode, request.receivedDate()));
+                new ReceivePurchaseOrderCommand(code, userCode, userName, request.receivedDate()));
         return ResponseEntity.ok(PurchaseOrderStatusResponse.from(received));
     }
 

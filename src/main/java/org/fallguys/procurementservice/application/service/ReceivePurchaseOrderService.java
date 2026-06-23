@@ -3,6 +3,7 @@ package org.fallguys.procurementservice.application.service;
 import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.command.ReceivePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.usecase.ReceivePurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.outbound.model.Executor;
 import org.fallguys.procurementservice.application.port.outbound.port.InboundStockPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
@@ -74,7 +75,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
 
         order.receive();
 
-        inboundStockPort.inbound(order);
+        inboundStockPort.inbound(order, new Executor(command.userCode(), command.userName()));
 
         PurchaseOrder saved = savePurchaseOrderPort.save(order);
 
