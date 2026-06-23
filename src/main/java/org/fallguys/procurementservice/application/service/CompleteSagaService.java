@@ -23,7 +23,7 @@ public class CompleteSagaService implements CompleteSagaUseCase {
      *
      * 흐름:
      * 1) code로 발주서를 조회한다(없으면 예외 → 리스너 재시도/DLQ 격리. correlationId 누락도 동일 경로).
-     * 2) 멱등 가드: 이미 DONE/FAILED(종료)거나 NONE(미시작)이면 skip.
+     * 2) 대상 가드: 진행 중 saga(SENDING/PROCESSING)만 대상. 그 외(NONE/DONE/FAILED)는 skip.
      * 3) SENDING이면 PROCESSING을 거쳐 DONE으로(응답이 발행 confirm보다 먼저 도착한 경우).
      *    PROCESSING이면 바로 DONE으로 전이한다.
      *
@@ -35,7 +35,7 @@ public class CompleteSagaService implements CompleteSagaUseCase {
         PurchaseOrder order = loadPurchaseOrderPort.findByCode(purchaseOrderCode)
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND));
         SagaStatus saga = order.getSagaStatus();
-        if (saga == SagaStatus.DONE || saga == SagaStatus.FAILED || saga == SagaStatus.NONE) {
+        if (saga != SagaStatus.SENDING && saga != SagaStatus.PROCESSING) {
             return;
         }
         if (saga == SagaStatus.SENDING) {

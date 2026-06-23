@@ -96,6 +96,17 @@ class CompensateInboundServiceTest {
     }
 
     @Test
+    void saga_NONE이면_skip() {
+        given(loadPurchaseOrderPort.findByCode(CODE))
+                .willReturn(Optional.of(order(PurchaseOrderStatus.RECEIVED, SagaStatus.NONE)));
+
+        service.compensate(CODE, "INV-001", "재고 부족");
+
+        verify(savePurchaseOrderPort, never()).save(any());
+        verifyNoInteractions(savePurchaseOrderStatusHistoryPort);
+    }
+
+    @Test
     void 발주서_미존재이면_예외_던져_DLQ로() {
         given(loadPurchaseOrderPort.findByCode(CODE)).willReturn(Optional.empty());
 

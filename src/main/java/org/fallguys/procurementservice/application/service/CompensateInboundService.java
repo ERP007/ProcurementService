@@ -32,7 +32,8 @@ public class CompensateInboundService implements CompensateInboundUseCase {
      *
      * 흐름:
      * 1) code로 발주서를 조회한다(없으면 예외 → 리스너 재시도/DLQ 격리. correlationId 누락도 동일 경로).
-     * 2) 멱등 가드: 이미 DONE/FAILED(종료 saga)면 skip.
+     * 2) 대상 가드: 진행 중 saga(SENDING/PROCESSING)만 보상한다. 그 외(NONE/DONE/FAILED)는 skip.
+     *    멱등(중복 실패 응답 무해) + 안전(saga 비대상 주문 오염 방지).
      * 3) 도메인 compensateInbound(): RECEIVED→APPROVED 롤백 + saga FAILED.
      * 4) 저장 후 보상 이력을 기록한다(status=되돌린 APPROVED, actor=SYSTEM, payload=null).
      *    실패 사유(errorCode/메시지)는 이력이 아니라 WARN 로그로만 남긴다.
@@ -45,7 +46,7 @@ public class CompensateInboundService implements CompensateInboundUseCase {
         PurchaseOrder order = loadPurchaseOrderPort.findByCode(purchaseOrderCode)
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND));
         SagaStatus saga = order.getSagaStatus();
-        if (saga == SagaStatus.DONE || saga == SagaStatus.FAILED) {
+        if (saga != SagaStatus.SENDING && saga != SagaStatus.PROCESSING) {
             return;
         }
 
