@@ -16,6 +16,11 @@ public class JwtClaimExtractor {
         return userCode;
     }
 
+    // 실행자 이름. 없으면 null(필수 아님 — 이벤트 부가 정보용).
+    public static String extractUserName(Jwt jwt) {
+        return jwt.getClaimAsString("name");
+    }
+
     public static UserRole extractRole(Jwt jwt) {
         try {
             String role = jwt.getClaimAsString("user_role");
