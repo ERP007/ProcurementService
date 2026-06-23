@@ -67,9 +67,9 @@ public class OutboxEntity {
         return new OutboxEntity(eventId, aggregateId, eventType, payload, createdAt);
     }
 
-    public void markPublished() {
+    public void markPublished(Instant publishedAt) {
         this.status = OutboxStatus.PUBLISHED;
-        this.publishedAt = Instant.now();
+        this.publishedAt = publishedAt;
     }
 
     public void markFailed() {
