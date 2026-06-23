@@ -2,6 +2,7 @@ package org.fallguys.procurementservice.application.service;
 
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -101,10 +103,11 @@ class CompleteSagaServiceTest {
     }
 
     @Test
-    void 발주서_미존재이면_no_op() {
+    void 발주서_미존재이면_예외_던져_DLQ로() {
         given(loadPurchaseOrderPort.findByCode(CODE)).willReturn(Optional.empty());
 
-        service.complete(CODE);
+        assertThatThrownBy(() -> service.complete(CODE))
+                .isInstanceOf(ResourceNotFoundException.class);
 
         verify(savePurchaseOrderPort, never()).save(any());
     }

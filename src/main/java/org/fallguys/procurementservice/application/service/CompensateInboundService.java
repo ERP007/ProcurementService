@@ -6,6 +6,8 @@ import org.fallguys.procurementservice.application.port.inbound.usecase.Compensa
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
+import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
@@ -29,7 +31,7 @@ public class CompensateInboundService implements CompensateInboundUseCase {
      * 입고 실패 응답 수신 시 입고를 보상한다.
      *
      * 흐름:
-     * 1) code로 발주서를 조회한다(없으면 no-op).
+     * 1) code로 발주서를 조회한다(없으면 예외 → 리스너 재시도/DLQ 격리. correlationId 누락도 동일 경로).
      * 2) 멱등 가드: 이미 DONE/FAILED(종료 saga)면 skip.
      * 3) 도메인 compensateInbound(): RECEIVED→APPROVED 롤백 + saga FAILED.
      * 4) 저장 후 보상 이력을 기록한다(status=되돌린 APPROVED, actor=SYSTEM, payload=null).
@@ -40,10 +42,8 @@ public class CompensateInboundService implements CompensateInboundUseCase {
     @Override
     @Transactional
     public void compensate(String purchaseOrderCode, String errorCode, String errorMessage) {
-        PurchaseOrder order = loadPurchaseOrderPort.findByCode(purchaseOrderCode).orElse(null);
-        if (order == null) {
-            return;
-        }
+        PurchaseOrder order = loadPurchaseOrderPort.findByCode(purchaseOrderCode)
+                .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND));
         SagaStatus saga = order.getSagaStatus();
         if (saga == SagaStatus.DONE || saga == SagaStatus.FAILED) {
             return;
