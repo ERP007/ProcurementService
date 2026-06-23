@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,7 +20,8 @@ import java.util.UUID;
  * AFTER_COMMIT 발행 + @Scheduled 폴러가 PENDING을 집어 발행한다.
  */
 @Entity
-@Table(name = "outbox")
+@Table(name = "outbox",
+        indexes = @Index(name = "idx_outbox_status_created_at", columnList = "status, created_at"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OutboxEntity {
