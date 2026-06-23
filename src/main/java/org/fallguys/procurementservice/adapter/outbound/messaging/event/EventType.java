@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum EventType {
 
-    INBOUND_STOCK_REQUESTED("inventory.stock.inbound.requested");
+    INBOUND_STOCK_REQUESTED("inventory.stock.inbound.requested.procurement");
 
     private final String wire;
 }
