@@ -162,7 +162,7 @@ class ReceivePurchaseOrderServiceTest {
         service.receive(UserRole.HQ_MANAGER, command());
 
         ArgumentCaptor<PurchaseOrder> captor = ArgumentCaptor.forClass(PurchaseOrder.class);
-        verify(inboundStockPort).inbound(captor.capture());
+        verify(inboundStockPort).inbound(captor.capture(), any());
         assertThat(captor.getValue().getCode()).isEqualTo("PO-2026-05-0001");
     }
 
@@ -171,7 +171,7 @@ class ReceivePurchaseOrderServiceTest {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
         willThrow(new org.fallguys.procurementservice.domain.exception.ExternalServiceException(
                 "ER-502", "일시적으로 서비스를 이용할 수 없습니다.", null))
-                .given(inboundStockPort).inbound(any());
+                .given(inboundStockPort).inbound(any(), any());
 
         assertThatThrownBy(() -> service.receive(UserRole.ADMIN, command()))
                 .isInstanceOf(org.fallguys.procurementservice.domain.exception.ExternalServiceException.class);
@@ -182,6 +182,6 @@ class ReceivePurchaseOrderServiceTest {
     // ── 픽스처 ────────────────────────────────────────────────────────────
 
     private ReceivePurchaseOrderCommand command() {
-        return new ReceivePurchaseOrderCommand("PO-2026-05-0001", "EMP-001", LocalDate.of(2026, 5, 24));
+        return new ReceivePurchaseOrderCommand("PO-2026-05-0001", "EMP-001", "홍길동", LocalDate.of(2026, 5, 24));
     }
 }
