@@ -90,6 +90,10 @@ public class PurchaseOrder {
         if (this.status != PurchaseOrderStatus.APPROVED) {
             throw new BusinessValidationException(ProcurementErrorCode.PURCHASE_ORDER_NOT_APPROVED);
         }
+        // 직전 saga가 아직 확정되지 않았으면 새 saga 전환을 막는다(staging 1건 불변식 보호).
+        if (this.sagaStatus.inProgress()) {
+            throw new BusinessValidationException(ProcurementErrorCode.SAGA_IN_PROGRESS);
+        }
         this.status = PurchaseOrderStatus.RECEIVED;
         this.sagaStatus = SagaStatus.SENDING;
     }

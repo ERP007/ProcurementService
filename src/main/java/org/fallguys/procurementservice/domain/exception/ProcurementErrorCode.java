@@ -33,7 +33,8 @@ public enum ProcurementErrorCode implements ErrorCode {
 
     SAGA_NOT_SENDING("PO-022", "SENDING 상태에서만 처리 중으로 전환할 수 있습니다."),
     SAGA_NOT_PROCESSING("PO-023", "PROCESSING 상태에서만 완료 처리할 수 있습니다."),
-    INBOUND_COMPENSATION_NOT_ALLOWED("PO-024", "RECEIVED 상태인 발주서만 입고 보상할 수 있습니다.");
+    INBOUND_COMPENSATION_NOT_ALLOWED("PO-024", "RECEIVED 상태인 발주서만 입고 보상할 수 있습니다."),
+    SAGA_IN_PROGRESS("PO-025", "직전 saga가 진행 중이어서 상태를 전환할 수 없습니다.");
 
     private final String code;
     private final String message;

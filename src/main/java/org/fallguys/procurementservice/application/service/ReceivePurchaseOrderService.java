@@ -7,15 +7,15 @@ import org.fallguys.procurementservice.application.port.outbound.model.Executor;
 import org.fallguys.procurementservice.application.port.outbound.port.InboundStockPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PendingStatusChangePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
-import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PendingStatusChange;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ReceivingPayload;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
     private final LoadWarehousePort loadWarehousePort;
     private final InboundStockPort inboundStockPort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
-    private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    private final PendingStatusChangePort pendingStatusChangePort;
 
     /**
      * 발주서를 전량 입고 처리한다.
@@ -40,11 +40,13 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
      * 1) 역할 검증: ADMIN·HQ_MANAGER·HQ_STAFF만 허용.
      * 2) code로 발주서를 조회한다(없으면 404).
      * 3) 창고 활성 여부를 검증한다(비활성이면 400).
-     * 4) 도메인 receive() 호출: APPROVED 가드 + 상태·receiving 변경.
+     * 4) 도메인 receive() 호출: APPROVED 가드 + saga 진행 중 가드 + 상태 provisional 전환(saga SENDING).
      * 5) 재고 서비스에 입고 처리를 요청한다.
-     * 6) 저장 후 반환한다.
+     * 6) 발주서 저장 + 상태 전환을 staging에 적재한다.
+     *    RECEIVED는 saga로 보상될 수 있는 provisional 상태이므로 이력에 즉시 박지 않고,
+     *    saga DONE 확정 시 이력으로 승격한다. 행위 시점(now)은 staging에 보존된다.
      *
-     * 트랜잭션: 쓰기. 재고 서비스 호출은 트랜잭션 내에서 수행되며, 실패 시 예외 전파로 PO 상태 변경이 롤백된다.
+     * 트랜잭션: 쓰기. 재고 서비스 호출은 트랜잭션 내에서 수행되며, 실패 시 예외 전파로 PO 상태 변경·staging이 롤백된다.
      *
      * 예외:
      * - 허용되지 않은 역할: ForbiddenException (403)
@@ -71,7 +73,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
 
         PurchaseOrder saved = savePurchaseOrderPort.save(order);
 
-        savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
+        pendingStatusChangePort.save(new PendingStatusChange(
                 saved.getCode(),
                 PurchaseOrderStatus.RECEIVED,
                 command.userCode(),
