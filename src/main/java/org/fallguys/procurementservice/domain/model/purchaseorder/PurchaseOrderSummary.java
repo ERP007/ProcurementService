@@ -10,8 +10,6 @@ public record PurchaseOrderSummary(
         String vendorName,
         Instant createdAt,
         int lineCount,
-        Integer totalQuantity,
-        String unit,
         Money totalAmount,
         PurchaseOrderStatus status
 ) {}

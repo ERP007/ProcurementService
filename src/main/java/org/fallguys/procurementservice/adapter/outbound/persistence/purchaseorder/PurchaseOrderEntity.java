@@ -8,8 +8,9 @@ import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorde
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderSummary;
 import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
-import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -44,9 +45,13 @@ public class PurchaseOrderEntity {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
 
-    @BatchSize(size = 50)
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseOrderLineEntity> lines = new ArrayList<>();
+
+    // 목록(summary) 조회 시 lines 컬렉션을 로드하지 않고 라인 개수만 서브쿼리로 계산한다.
+    // INSERT/UPDATE에는 포함되지 않는 read-only 파생 값이다(생성자 인자는 무시됨).
+    @Formula("(select count(*) from purchase_order_lines l where l.po_number = code)")
+    private int lineCount;
 
     @Embedded
     private CreationEmbeddable creation;
@@ -82,6 +87,7 @@ public class PurchaseOrderEntity {
                 po.getMemo(),
                 po.getTotalAmount().amount(),
                 new ArrayList<>(),
+                0, // lineCount: @Formula 파생 값, 조회 시 재계산되므로 무시됨
                 CreationEmbeddable.from(po.getCreation()),
                 null,
                 po.getSagaStatus()
@@ -90,6 +96,18 @@ public class PurchaseOrderEntity {
                 .map(line -> PurchaseOrderLineEntity.from(line, entity))
                 .forEach(entity.lines::add);
         return entity;
+    }
+
+    public PurchaseOrderSummary toSummary() {
+        return new PurchaseOrderSummary(
+                code,
+                vendor.code(),
+                vendor.nameSnapshot(),
+                creation.createdAt(),
+                lineCount,
+                Money.of(totalAmount),
+                status
+        );
     }
 
     public PurchaseOrderEntity update(PurchaseOrder po) {

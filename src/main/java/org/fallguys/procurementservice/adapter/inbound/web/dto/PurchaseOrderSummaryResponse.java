@@ -12,8 +12,6 @@ public record PurchaseOrderSummaryResponse(
         String vendorName,
         Instant createdAt,
         int lineCount,
-        Integer totalQuantity,
-        String unit,
         BigDecimal totalAmount,
         String currency,
         PurchaseOrderStatus status
@@ -25,8 +23,6 @@ public record PurchaseOrderSummaryResponse(
                 summary.vendorName(),
                 summary.createdAt(),
                 summary.lineCount(),
-                summary.totalQuantity(),
-                summary.unit(),
                 summary.totalAmount().amount(),
                 "KRW",
                 summary.status()

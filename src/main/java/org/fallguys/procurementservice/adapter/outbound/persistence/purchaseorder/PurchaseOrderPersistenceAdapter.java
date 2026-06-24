@@ -2,14 +2,12 @@ package org.fallguys.procurementservice.adapter.outbound.persistence.purchaseord
 
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderline.PurchaseOrderLineEntity;
 import org.fallguys.procurementservice.application.port.inbound.query.SearchPurchaseOrderQuery;
 import org.fallguys.procurementservice.application.port.inbound.model.SortDirection;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderKpiPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SearchPurchaseOrderPort;
-import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderKpi;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderPage;
@@ -25,10 +23,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -68,7 +63,7 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
         );
 
         List<PurchaseOrderSummary> summaries = page.getContent().stream()
-                .map(this::toSummary)
+                .map(PurchaseOrderEntity::toSummary)
                 .toList();
 
         return new PurchaseOrderPage(summaries, query.page(), query.size(), page.getTotalElements());
@@ -111,33 +106,5 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
             default -> "creation.createdAt";
         };
         return Sort.by(direction, property);
-    }
-
-    private PurchaseOrderSummary toSummary(PurchaseOrderEntity entity) {
-        List<PurchaseOrderLineEntity> lines = entity.getLines();
-
-        Set<String> units = lines.stream()
-                .map(PurchaseOrderLineEntity::getUnitSnapshot)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        Integer totalQuantity = null;
-        String unit = null;
-        if (units.size() == 1) {
-            totalQuantity = lines.stream().mapToInt(PurchaseOrderLineEntity::getOrderQuantity).sum();
-            unit = units.iterator().next();
-        }
-
-        return new PurchaseOrderSummary(
-                entity.getCode(),
-                entity.getVendor().code(),
-                entity.getVendor().nameSnapshot(),
-                entity.getCreation().createdAt(),
-                lines.size(),
-                totalQuantity,
-                unit,
-                Money.of(entity.getTotalAmount()),
-                entity.getStatus()
-        );
     }
 }
