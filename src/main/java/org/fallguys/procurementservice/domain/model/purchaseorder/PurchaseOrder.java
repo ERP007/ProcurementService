@@ -104,6 +104,8 @@ public class PurchaseOrder {
         this.vendor = vendor;
         this.warehouse = warehouse;
         this.lines = lines;
+        // totalAmount는 lines 파생값이므로 lines 교체 시 항상 재계산한다(updateDraft와 동일 불변식).
+        this.totalAmount = calculateTotalAmount(lines);
     }
 
     // 입고 트리거. APPROVED→RECEIVED 전이와 함께 saga를 SENDING으로 연다(재고 입고 이벤트 발행 대기).
