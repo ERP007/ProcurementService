@@ -199,7 +199,7 @@ public class ProcurementController {
         return ResponseEntity.ok(PurchaseOrderStatusResponse.from(canceled));
     }
 
-    @Operation(summary = "구매 발주 생성(즉시 제출)", description = "REQUESTED 상태로 발주를 생성한다.")
+    @Operation(summary = "구매 발주 생성(즉시 제출)", description = "임시저장 없이 APPROVED 상태로 발주를 즉시 생성한다.")
     @PostMapping
     public ResponseEntity<PurchaseOrderStatusResponse> createPurchaseOrder(
             @AuthenticationPrincipal Jwt jwt,
