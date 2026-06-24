@@ -3,7 +3,6 @@ package org.fallguys.procurementservice.adapter.inbound.web.dto;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 /**
  * 발주 상태 전환(생성·제출·승인·취소·입고) 공통 응답.
@@ -15,7 +14,6 @@ public record PurchaseOrderStatusResponse(
         String code,
         String vendorCode,
         String warehouseCode,
-        LocalDate desiredArrivalDate,
         String status,
         BigDecimal totalAmount,
         String currency
@@ -23,9 +21,8 @@ public record PurchaseOrderStatusResponse(
     public static PurchaseOrderStatusResponse from(PurchaseOrder order) {
         return new PurchaseOrderStatusResponse(
                 order.getCode(),
-                order.getVendorCode(),
-                order.getWarehouseCode(),
-                order.getDesiredArrivalDate(),
+                order.getVendor().code(),
+                order.getWarehouse().code(),
                 order.getStatus().name(),
                 order.getTotalAmount().amount(),
                 "KRW"

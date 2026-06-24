@@ -21,6 +21,11 @@ public class JwtClaimExtractor {
         return jwt.getClaimAsString("name");
     }
 
+    // 실행자 직급. 없으면 null(필수 아님 — 행위자 스냅샷 부가 정보용).
+    public static String extractPosition(Jwt jwt) {
+        return jwt.getClaimAsString("position");
+    }
+
     public static UserRole extractRole(Jwt jwt) {
         try {
             String role = jwt.getClaimAsString("user_role");

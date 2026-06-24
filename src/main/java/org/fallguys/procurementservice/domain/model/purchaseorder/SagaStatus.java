@@ -5,5 +5,9 @@ public enum SagaStatus {
     SENDING,
     PROCESSING,
     DONE,
-    FAILED
+    FAILED;
+
+    public boolean inProgress() { return this == SENDING || this == PROCESSING; }
+
+    public boolean applied() { return this == DONE || this == FAILED; }
 }

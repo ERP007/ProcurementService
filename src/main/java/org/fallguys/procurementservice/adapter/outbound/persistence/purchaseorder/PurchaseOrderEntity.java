@@ -5,15 +5,15 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderline.PurchaseOrderLineEntity;
-import org.fallguys.procurementservice.adapter.outbound.persistence.vendor.VendorEntity;
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderProgress;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderSummary;
 import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
-import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,19 +28,17 @@ public class PurchaseOrderEntity {
     @Column(name = "code", nullable = false)
     private String code;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vendor_code", nullable = false)
-    private VendorEntity vendor;
+    // 공급사·창고 master와의 JPA 연관은 끊고 code + 확정 시점 박제명만 보관한다(타 서비스 소유 데이터로 취급).
+    // 변환 로직은 각 Embeddable VO 내부에 둔다.
+    @Embedded
+    private VendorRefEmbeddable vendor;
 
-    @Column(name = "warehouse_code", nullable = false)
-    private String warehouseCode;
+    @Embedded
+    private WarehouseRefEmbeddable warehouse;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private PurchaseOrderStatus status;
-
-    @Column(name = "desired_arrival_date", nullable = false)
-    private LocalDate desiredArrivalDate;
 
     @Column(name = "memo", columnDefinition = "text")
     private String memo;
@@ -48,9 +46,13 @@ public class PurchaseOrderEntity {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
 
-    @BatchSize(size = 50)
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseOrderLineEntity> lines = new ArrayList<>();
+
+    // 목록(summary) 조회 시 lines 컬렉션을 로드하지 않고 라인 개수만 서브쿼리로 계산한다.
+    // INSERT/UPDATE에는 포함되지 않는 read-only 파생 값이다(생성자 인자는 무시됨).
+    @Formula("(select count(*) from purchase_order_lines l where l.po_number = code)")
+    private int lineCount;
 
     @Embedded
     private CreationEmbeddable creation;
@@ -63,34 +65,39 @@ public class PurchaseOrderEntity {
     @Column(name = "saga_status", nullable = false)
     private SagaStatus sagaStatus;
 
+    // 직전 입고 saga 실패 사유. 보상 시 기록, 진행 페이지 폴링 응답 노출용(없으면 null).
+    @Column(name = "last_failure_reason", columnDefinition = "text")
+    private String lastFailureReason;
+
     public PurchaseOrder toDomain() {
         return new PurchaseOrder(
                 code,
-                vendor.getCode(),
-                warehouseCode,
+                vendor.toDomain(),
+                warehouse.toDomain(),
                 status,
-                desiredArrivalDate,
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
                 new Money(totalAmount),
                 creation.toDomain(),
-                sagaStatus
+                sagaStatus,
+                lastFailureReason
         );
     }
 
-    public static PurchaseOrderEntity from(PurchaseOrder po, VendorEntity vendor) {
+    public static PurchaseOrderEntity from(PurchaseOrder po) {
         PurchaseOrderEntity entity = new PurchaseOrderEntity(
                 po.getCode(),
-                vendor,
-                po.getWarehouseCode(),
+                VendorRefEmbeddable.from(po.getVendor()),
+                WarehouseRefEmbeddable.from(po.getWarehouse()),
                 po.getStatus(),
-                po.getDesiredArrivalDate(),
                 po.getMemo(),
                 po.getTotalAmount().amount(),
                 new ArrayList<>(),
+                0, // lineCount: @Formula 파생 값, 조회 시 재계산되므로 무시됨
                 CreationEmbeddable.from(po.getCreation()),
                 null,
-                po.getSagaStatus()
+                po.getSagaStatus(),
+                po.getLastFailureReason()
         );
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, entity))
@@ -98,14 +105,26 @@ public class PurchaseOrderEntity {
         return entity;
     }
 
-    public PurchaseOrderEntity update(PurchaseOrder po, VendorEntity vendor) {
-        this.vendor = vendor;
-        this.warehouseCode = po.getWarehouseCode();
+    public PurchaseOrderSummary toSummary() {
+        return new PurchaseOrderSummary(
+                code,
+                vendor.toDomain(),
+                creation.createdAt(),
+                lineCount,
+                Money.of(totalAmount),
+                status,
+                PurchaseOrderProgress.from(status, sagaStatus)
+        );
+    }
+
+    public PurchaseOrderEntity update(PurchaseOrder po) {
+        this.vendor = VendorRefEmbeddable.from(po.getVendor());
+        this.warehouse = WarehouseRefEmbeddable.from(po.getWarehouse());
         this.status = po.getStatus();
-        this.desiredArrivalDate = po.getDesiredArrivalDate();
         this.memo = po.getMemo();
         this.totalAmount = po.getTotalAmount().amount();
         this.sagaStatus = po.getSagaStatus();
+        this.lastFailureReason = po.getLastFailureReason();
         this.lines.clear();
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, this))

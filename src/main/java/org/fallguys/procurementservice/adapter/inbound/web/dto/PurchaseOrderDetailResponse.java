@@ -5,7 +5,6 @@ import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 
 public record PurchaseOrderDetailResponse(
@@ -14,9 +13,9 @@ public record PurchaseOrderDetailResponse(
         WarehouseInfo warehouse,
         PersonInfo approvedBy,
         Instant createdAt,
-        LocalDate desiredArrivalDate,
         String memo,
         String status,
+        String progress,
         BigDecimal totalAmount,
         String currency,
         List<LineInfo> lines
@@ -28,7 +27,7 @@ public record PurchaseOrderDetailResponse(
     public static PurchaseOrderDetailResponse from(GetPurchaseOrderResult result) {
         PurchaseOrder order = result.order();
 
-        PersonInfo approvedBy = PersonInfo.from(result.approvedByUser());
+        PersonInfo approvedBy = PersonInfo.from(result.approvedBy());
 
         List<LineInfo> lines = order.getLines().stream()
                 .map(l -> new LineInfo(
@@ -43,13 +42,13 @@ public record PurchaseOrderDetailResponse(
 
         return new PurchaseOrderDetailResponse(
                 order.getCode(),
-                new VendorInfo(result.vendor().getCode(), result.vendor().getName()),
-                new WarehouseInfo(result.warehouse().code(), result.warehouse().name()),
+                new VendorInfo(result.vendorCode(), result.vendorName()),
+                new WarehouseInfo(result.warehouseCode(), result.warehouseName()),
                 approvedBy,
                 order.getCreation().createdAt(),
-                order.getDesiredArrivalDate(),
                 order.getMemo(),
                 order.getStatus().name(),
+                order.progress().name(),
                 order.getTotalAmount().amount(),
                 "KRW",
                 lines

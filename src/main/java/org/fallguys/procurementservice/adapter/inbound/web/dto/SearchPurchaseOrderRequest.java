@@ -26,8 +26,8 @@ public record SearchPurchaseOrderRequest(
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         LocalDate endDate,
 
-        @Pattern(regexp = "createdAt|desiredArrivalDate|totalAmount",
-                message = "sortField는 createdAt·desiredArrivalDate·totalAmount 중 하나여야 합니다.")
+        @Pattern(regexp = "createdAt|totalAmount",
+                message = "sortField는 createdAt·totalAmount 중 하나여야 합니다.")
         String sortField,
 
         @Pattern(regexp = "asc|desc",
@@ -92,7 +92,6 @@ public record SearchPurchaseOrderRequest(
     private static PurchaseOrderSortField resolveSortField(String sortField) {
         if (sortField == null) return PurchaseOrderSortField.CREATED_AT;
         return switch (sortField) {
-            case "desiredArrivalDate" -> PurchaseOrderSortField.DESIRED_ARRIVAL_DATE;
             case "totalAmount" -> PurchaseOrderSortField.TOTAL_AMOUNT;
             default -> PurchaseOrderSortField.CREATED_AT;
         };

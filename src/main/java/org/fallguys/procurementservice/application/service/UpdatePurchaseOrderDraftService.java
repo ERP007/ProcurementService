@@ -16,12 +16,12 @@ import org.fallguys.procurementservice.domain.exception.ResourceNotFoundExceptio
 import org.fallguys.procurementservice.domain.model.*;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,12 +29,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraftUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final LoadVendorPort loadVendorPort;
@@ -48,7 +42,7 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
      * 1) 역할 검증: ADMIN·HQ_MANAGER·HQ_STAFF만 허용.
      * 2) 발주서 조회: 미존재 시 404.
      * 3) 상태 검증: DRAFT가 아니면 수정 불가.
-     * 4) 비즈니스 검증: 도착 희망일 1년 이내, 품목 코드 중복 없음.
+     * 4) 비즈니스 검증: 품목 코드 중복 없음.
      * 5) 공급사 조회: 미존재 시 404.
      * 6) 창고 조회: 미존재·비활성 시 404/400.
      * 7) 라인 재구성(스냅샷 없이).
@@ -60,14 +54,15 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
      * - 허용되지 않은 역할: ForbiddenException (403)
      * - 발주서 미존재: ResourceNotFoundException (404)
      * - DRAFT 아닌 상태: BusinessValidationException (400)
-     * - 도착 희망일 1년 초과: BusinessValidationException (400)
      * - 품목 코드 중복: BusinessValidationException (400)
      * - 공급사·창고 미존재: ResourceNotFoundException (404)
      */
     @Override
     @Transactional
     public PurchaseOrder update(UserRole role, UpdatePurchaseOrderDraftCommand command) {
-        validateRole(role);
+        if (!role.isHqUser()) {
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
+        }
 
         PurchaseOrder existing = loadPurchaseOrderPort.findByCode(command.code())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -79,7 +74,6 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
             throw new BusinessValidationException(ProcurementErrorCode.PURCHASE_ORDER_NOT_DRAFT);
         }
 
-        validateDesiredArrivalDate(command.desiredArrivalDate());
         validateNoDuplicateItemSkus(command.lines());
 
         loadVendorPort.findActiveByCode(command.vendorCode())
@@ -89,27 +83,15 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
 
         List<PurchaseOrderLine> lines = buildDraftLines(command.lines());
 
+        // DRAFT는 미확정 → 공급사·창고명 박제 X. code만 보관하고 조회 시 live로 채운다.
         existing.updateDraft(
-                command.vendorCode(),
-                command.warehouseCode(),
-                command.desiredArrivalDate(),
+                VendorRef.codeOnly(command.vendorCode()),
+                WarehouseRef.codeOnly(command.warehouseCode()),
                 command.memo(),
                 lines
         );
 
         return savePurchaseOrderPort.save(existing);
-    }
-
-    private void validateRole(UserRole role) {
-        if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
-        }
-    }
-
-    private void validateDesiredArrivalDate(LocalDate desiredArrivalDate) {
-        if (desiredArrivalDate.isAfter(LocalDate.now().plusYears(1))) {
-            throw new BusinessValidationException(ProcurementErrorCode.DESIRED_ARRIVAL_DATE_TOO_FAR);
-        }
     }
 
     private void validateNoDuplicateItemSkus(List<PurchaseOrderLineCommand> lines) {

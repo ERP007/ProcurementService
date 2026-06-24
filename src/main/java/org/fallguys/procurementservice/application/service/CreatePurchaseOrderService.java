@@ -8,21 +8,25 @@ import org.fallguys.procurementservice.application.port.outbound.port.GeneratePo
 import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.*;
 import org.fallguys.procurementservice.domain.model.*;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ActorRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +36,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
 
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
-
     private final LoadVendorPort loadVendorPort;
     private final LoadWarehousePort loadWarehousePort;
+    private final LoadWarehouseInfoPort loadWarehouseInfoPort;
     private final LoadItemPort loadItemPort;
     private final GeneratePoCodePort generatePoCodePort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
@@ -50,7 +49,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
      *
      * 흐름:
      * 1) 역할 검증: ADMIN·HQ_MANAGER·HQ_STAFF만 허용.
-     * 2) 비즈니스 검증: 도착 희망일 1년 이내, 품목 코드 중복 없음.
+     * 2) 비즈니스 검증: 품목 코드 중복 없음.
      * 3) 공급사 조회: 미존재 시 404.
      * 4) 창고 조회: 미존재·비활성 시 404/400.
      * 5) APPROVED인 경우 품목 서비스 호출로 SKU 존재 검증 후 스냅샷 채워 라인 구성.
@@ -62,7 +61,6 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
      *
      * 예외:
      * - 허용되지 않은 역할: ForbiddenException (403)
-     * - 도착 희망일 1년 초과: BusinessValidationException (400)
      * - 품목 코드 중복: BusinessValidationException (400)
      * - 공급사·창고 미존재: ResourceNotFoundException (404)
      * - 존재하지 않는 SKU 포함(APPROVED): ResourceNotFoundException (404)
@@ -70,11 +68,12 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
     @Override
     @Transactional
     public PurchaseOrder create(UserRole role, CreatePurchaseOrderCommand command) {
-        validateRole(role);
-        validateDesiredArrivalDate(command.desiredArrivalDate());
+        if (!role.isHqUser()) {
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
+        }
         validateNoDuplicateItemSkus(command.lines());
 
-        loadVendorPort.findActiveByCode(command.vendorCode())
+        Vendor vendor = loadVendorPort.findActiveByCode(command.vendorCode())
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.VENDOR_NOT_FOUND));
 
         loadWarehousePort.verifyActive(command.warehouseCode());
@@ -86,12 +85,23 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 ? buildApprovedLines(command.lines())
                 : buildDraftLines(command.lines());
 
+        // 확정(즉시 APPROVED) 생성이면 공급사·창고명을 박제, DRAFT면 code만 보관(조회 시 live 채움).
+        VendorRef vendorRef;
+        WarehouseRef warehouseRef;
+        if (isApproved) {
+            WarehouseInfo warehouseInfo = loadWarehouseInfoPort.findByCode(command.warehouseCode());
+            vendorRef = VendorRef.snapshot(vendor.getCode(), vendor.getName());
+            warehouseRef = WarehouseRef.snapshot(warehouseInfo.code(), warehouseInfo.name());
+        } else {
+            vendorRef = VendorRef.codeOnly(vendor.getCode());
+            warehouseRef = WarehouseRef.codeOnly(command.warehouseCode());
+        }
+
         PurchaseOrder purchaseOrder = PurchaseOrder.create(
                 code,
-                command.vendorCode(),
-                command.warehouseCode(),
+                vendorRef,
+                warehouseRef,
                 command.status(),
-                command.desiredArrivalDate(),
                 command.memo(),
                 lines,
                 command.userCode(),
@@ -100,22 +110,13 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
 
         PurchaseOrder saved = savePurchaseOrderPort.save(purchaseOrder);
 
+        // 행위자는 불변 사실 → DRAFT 포함 행위 시점에 박제.
         savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
-                saved.getCode(), command.status(), command.userCode(), null, now));
+                saved.getCode(), command.status(),
+                new ActorRef(command.userCode(), command.userName(), command.userPosition()),
+                null, now));
 
         return saved;
-    }
-
-    private void validateRole(UserRole role) {
-        if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
-        }
-    }
-
-    private void validateDesiredArrivalDate(LocalDate desiredArrivalDate) {
-        if (desiredArrivalDate.isAfter(LocalDate.now().plusYears(1))) {
-            throw new BusinessValidationException(ProcurementErrorCode.DESIRED_ARRIVAL_DATE_TOO_FAR);
-        }
     }
 
     private void validateNoDuplicateItemSkus(List<PurchaseOrderLineCommand> lines) {
