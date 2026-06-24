@@ -30,12 +30,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class GetPurchaseOrderService implements GetPurchaseOrderUseCase {
 
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
-
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final LoadPurchaseOrderStatusHistoriesPort loadPurchaseOrderStatusHistoriesPort;
     private final LoadVendorPort loadVendorPort;
@@ -64,7 +58,7 @@ public class GetPurchaseOrderService implements GetPurchaseOrderUseCase {
     @Override
     @Transactional(readOnly = true)
     public GetPurchaseOrderResult get(UserRole role, String code) {
-        if (!ALLOWED_ROLES.contains(role)) {
+        if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
 

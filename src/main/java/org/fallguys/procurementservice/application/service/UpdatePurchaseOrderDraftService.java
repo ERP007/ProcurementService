@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,12 +28,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraftUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final LoadVendorPort loadVendorPort;
@@ -67,7 +60,9 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
     @Override
     @Transactional
     public PurchaseOrder update(UserRole role, UpdatePurchaseOrderDraftCommand command) {
-        validateRole(role);
+        if (!role.isHqUser()) {
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
+        }
 
         PurchaseOrder existing = loadPurchaseOrderPort.findByCode(command.code())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -98,12 +93,6 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
         );
 
         return savePurchaseOrderPort.save(existing);
-    }
-
-    private void validateRole(UserRole role) {
-        if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
-        }
     }
 
     private void validateDesiredArrivalDate(LocalDate desiredArrivalDate) {

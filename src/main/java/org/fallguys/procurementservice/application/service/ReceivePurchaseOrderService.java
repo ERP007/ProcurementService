@@ -22,18 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.EnumSet;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final LoadWarehousePort loadWarehousePort;
@@ -64,7 +56,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
     @Override
     @Transactional
     public PurchaseOrder receive(UserRole role, ReceivePurchaseOrderCommand command) {
-        if (!ALLOWED_ROLES.contains(role)) {
+        if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
 

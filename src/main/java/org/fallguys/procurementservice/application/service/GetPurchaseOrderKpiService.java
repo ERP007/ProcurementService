@@ -11,18 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.EnumSet;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class GetPurchaseOrderKpiService implements GetPurchaseOrderKpiUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final LoadPurchaseOrderKpiPort loadPurchaseOrderKpiPort;
 
@@ -45,7 +37,7 @@ public class GetPurchaseOrderKpiService implements GetPurchaseOrderKpiUseCase {
     @Override
     @Transactional(readOnly = true)
     public PurchaseOrderKpi getKpi(UserRole role) {
-        if (!ALLOWED_ROLES.contains(role)) {
+        if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
         return loadPurchaseOrderKpiPort.loadKpi(LocalDate.now());

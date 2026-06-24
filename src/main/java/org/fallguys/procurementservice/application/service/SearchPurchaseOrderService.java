@@ -15,18 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.EnumSet;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class SearchPurchaseOrderService implements SearchPurchaseOrderUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final SearchPurchaseOrderPort searchPurchaseOrderPort;
 
@@ -48,7 +40,7 @@ public class SearchPurchaseOrderService implements SearchPurchaseOrderUseCase {
     @Override
     @Transactional(readOnly = true)
     public PurchaseOrderPage search(UserRole role, SearchPurchaseOrderQuery query) {
-        if (!ALLOWED_ROLES.contains(role)) {
+        if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
         validateDateRange(query.startDate(), query.endDate());

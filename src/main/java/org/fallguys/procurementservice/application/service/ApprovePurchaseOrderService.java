@@ -25,20 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final LoadItemPort loadItemPort;
@@ -77,7 +69,7 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
     @Override
     @Transactional
     public PurchaseOrder approve(UserRole role, ApprovePurchaseOrderCommand command) {
-        if (!ALLOWED_ROLES.contains(role)) {
+        if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
 

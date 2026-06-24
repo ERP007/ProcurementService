@@ -70,7 +70,9 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
     @Override
     @Transactional
     public PurchaseOrder create(UserRole role, CreatePurchaseOrderCommand command) {
-        validateRole(role);
+        if (!role.isHqUser()) {
+            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
+        }
         validateDesiredArrivalDate(command.desiredArrivalDate());
         validateNoDuplicateItemSkus(command.lines());
 
@@ -104,12 +106,6 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 saved.getCode(), command.status(), command.userCode(), null, now));
 
         return saved;
-    }
-
-    private void validateRole(UserRole role) {
-        if (!ALLOWED_ROLES.contains(role)) {
-            throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
-        }
     }
 
     private void validateDesiredArrivalDate(LocalDate desiredArrivalDate) {

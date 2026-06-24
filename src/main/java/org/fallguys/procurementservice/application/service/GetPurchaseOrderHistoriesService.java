@@ -16,21 +16,13 @@ import org.fallguys.procurementservice.domain.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class GetPurchaseOrderHistoriesService implements GetPurchaseOrderHistoriesUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final LoadPurchaseOrderStatusHistoriesPort loadPurchaseOrderStatusHistoriesPort;
@@ -56,7 +48,7 @@ public class GetPurchaseOrderHistoriesService implements GetPurchaseOrderHistori
     @Override
     @Transactional(readOnly = true)
     public List<PurchaseOrderHistoryEntry> getHistories(UserRole role, String code) {
-        if (!ALLOWED_ROLES.contains(role)) {
+        if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
 
