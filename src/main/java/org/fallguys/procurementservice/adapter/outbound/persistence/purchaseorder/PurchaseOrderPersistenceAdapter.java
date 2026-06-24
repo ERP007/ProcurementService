@@ -26,7 +26,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,12 +61,11 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
     }
 
     @Override
-    public PurchaseOrderKpi loadKpi(LocalDate today) {
+    public PurchaseOrderKpi loadKpi() {
         long totalCount = purchaseOrderJpaDao.countByStatusNot(PurchaseOrderStatus.CANCELED);
         long draftCount = purchaseOrderJpaDao.countByStatus(PurchaseOrderStatus.DRAFT);
         long approvedCount = purchaseOrderJpaDao.countByStatus(PurchaseOrderStatus.APPROVED);
-        long delayedCount = purchaseOrderJpaDao.countByStatusAndDesiredArrivalDateBefore(PurchaseOrderStatus.APPROVED, today);
-        return new PurchaseOrderKpi(totalCount, draftCount, approvedCount, delayedCount);
+        return new PurchaseOrderKpi(totalCount, draftCount, approvedCount);
     }
 
     @Override
@@ -116,7 +114,6 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
         Sort.Direction direction = query.sortDirection() == SortDirection.ASC
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
         String property = switch (query.sortField()) {
-            case DESIRED_ARRIVAL_DATE -> "desiredArrivalDate";
             case TOTAL_AMOUNT -> "totalAmount";
             default -> "creation.createdAt";
         };
@@ -143,7 +140,6 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
                 entity.getVendor().getCode(),
                 entity.getVendor().getName(),
                 entity.getCreation().createdAt(),
-                entity.getDesiredArrivalDate(),
                 lines.size(),
                 totalQuantity,
                 unit,

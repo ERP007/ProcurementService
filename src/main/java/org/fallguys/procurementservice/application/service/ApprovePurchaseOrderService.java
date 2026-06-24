@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -46,8 +45,7 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
      * 1) 역할 검증: ADMIN·HQ_MANAGER·HQ_STAFF만 허용.
      * 2) 발주서 조회: 미존재 시 404.
      * 2-1) 상태 가드: DRAFT가 아니면 불필요한 외부 호출 전에 fail-fast (도메인 approve()가 최종 방어).
-     * 3) 비즈니스 검증: 라인 1개 이상, 도착 희망일 과거 불가·1년 이내.
-     *    (DRAFT 저장 시점 이후 상태가 변할 수 있으므로 승인 시점에 재검증한다.)
+     * 3) 비즈니스 검증: 라인 1개 이상.
      * 4) 공급사 조회: 미존재·비활성 시 404. (DRAFT 저장 후 벤더가 비활성화됐을 수 있다.)
      * 5) 창고 조회: 미존재·비활성 시 404/400. (DRAFT 저장 후 창고가 비활성화됐을 수 있다.)
      * 6) 품목 서비스 호출로 기존 라인의 SKU 존재 검증 및 스냅샷 갱신.
@@ -60,7 +58,6 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
      * - 허용되지 않은 역할: ForbiddenException (403)
      * - 발주서 미존재: ResourceNotFoundException (404)
      * - 라인 없음: BusinessValidationException (400)
-     * - 도착 희망일 과거·1년 초과: BusinessValidationException (400)
      * - 공급사·창고 미존재: ResourceNotFoundException (404)
      * - 비활성 창고: BusinessValidationException (400)
      * - 존재하지 않는 SKU 포함: ResourceNotFoundException (404)
@@ -84,7 +81,6 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
         }
 
         validateHasLines(purchaseOrder.getLines());
-        validateDesiredArrivalDate(purchaseOrder.getDesiredArrivalDate());
 
         loadVendorPort.findActiveByCode(purchaseOrder.getVendorCode())
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.VENDOR_NOT_FOUND));
@@ -111,16 +107,6 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
     private void validateHasLines(List<PurchaseOrderLine> lines) {
         if (lines.isEmpty()) {
             throw new BusinessValidationException(ProcurementErrorCode.EMPTY_PURCHASE_ORDER_LINE);
-        }
-    }
-
-    private void validateDesiredArrivalDate(LocalDate desiredArrivalDate) {
-        LocalDate today = LocalDate.now();
-        if (desiredArrivalDate.isBefore(today)) {
-            throw new BusinessValidationException(ProcurementErrorCode.DESIRED_ARRIVAL_DATE_IN_PAST);
-        }
-        if (desiredArrivalDate.isAfter(today.plusYears(1))) {
-            throw new BusinessValidationException(ProcurementErrorCode.DESIRED_ARRIVAL_DATE_TOO_FAR);
         }
     }
 

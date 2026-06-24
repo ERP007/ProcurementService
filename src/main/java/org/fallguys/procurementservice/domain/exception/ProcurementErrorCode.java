@@ -14,7 +14,6 @@ public enum ProcurementErrorCode implements ErrorCode {
     ITEM_NOT_FOUND("PO-005", "존재하지 않는 품목이 포함되어 있습니다."),
 
     VALIDATION_FAILED("PO-006", "요청 형식이 올바르지 않습니다."),
-    DESIRED_ARRIVAL_DATE_TOO_FAR("PO-007", "도착 희망일은 오늘로부터 1년 이내여야 합니다."),
     DUPLICATE_ITEM_CODE("PO-008", "동일한 품목 코드가 중복되어 있습니다."),
     ITEM_INACTIVE("PO-009", "비활성 품목이 포함되어 있습니다."),
     WAREHOUSE_INACTIVE("PO-010", "비활성 창고입니다."),
@@ -30,7 +29,6 @@ public enum ProcurementErrorCode implements ErrorCode {
     INVENTORY_INBOUND_FAILED("PO-018", "재고 입고 처리에 실패했습니다."),
 
     EMPTY_PURCHASE_ORDER_LINE("PO-019", "발주 라인은 1개 이상이어야 합니다."),
-    DESIRED_ARRIVAL_DATE_IN_PAST("PO-020", "도착 희망일은 오늘 이후여야 합니다."),
     PURCHASE_ORDER_CONFLICT("PO-021", "다른 사용자가 먼저 발주서를 변경했습니다. 다시 시도해 주세요."),
 
     SAGA_NOT_SENDING("PO-022", "SENDING 상태에서만 처리 중으로 전환할 수 있습니다."),

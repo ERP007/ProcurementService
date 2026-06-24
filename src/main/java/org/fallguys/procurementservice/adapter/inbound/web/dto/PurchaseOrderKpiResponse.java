@@ -5,15 +5,13 @@ import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderK
 public record PurchaseOrderKpiResponse(
         long totalCount,
         long draftCount,
-        long approvedCount,
-        long delayedCount
+        long approvedCount
 ) {
     public static PurchaseOrderKpiResponse from(PurchaseOrderKpi kpi) {
         return new PurchaseOrderKpiResponse(
                 kpi.totalCount(),
                 kpi.draftCount(),
-                kpi.approvedCount(),
-                kpi.delayedCount()
+                kpi.approvedCount()
         );
     }
 }

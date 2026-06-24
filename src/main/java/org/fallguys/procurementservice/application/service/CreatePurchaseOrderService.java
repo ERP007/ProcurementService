@@ -21,8 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,12 +29,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
-
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
 
     private final LoadVendorPort loadVendorPort;
     private final LoadWarehousePort loadWarehousePort;
@@ -50,7 +42,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
      *
      * 흐름:
      * 1) 역할 검증: ADMIN·HQ_MANAGER·HQ_STAFF만 허용.
-     * 2) 비즈니스 검증: 도착 희망일 1년 이내, 품목 코드 중복 없음.
+     * 2) 비즈니스 검증: 품목 코드 중복 없음.
      * 3) 공급사 조회: 미존재 시 404.
      * 4) 창고 조회: 미존재·비활성 시 404/400.
      * 5) APPROVED인 경우 품목 서비스 호출로 SKU 존재 검증 후 스냅샷 채워 라인 구성.
@@ -62,7 +54,6 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
      *
      * 예외:
      * - 허용되지 않은 역할: ForbiddenException (403)
-     * - 도착 희망일 1년 초과: BusinessValidationException (400)
      * - 품목 코드 중복: BusinessValidationException (400)
      * - 공급사·창고 미존재: ResourceNotFoundException (404)
      * - 존재하지 않는 SKU 포함(APPROVED): ResourceNotFoundException (404)
@@ -73,7 +64,6 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
         if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
-        validateDesiredArrivalDate(command.desiredArrivalDate());
         validateNoDuplicateItemSkus(command.lines());
 
         loadVendorPort.findActiveByCode(command.vendorCode())
@@ -93,7 +83,6 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 command.vendorCode(),
                 command.warehouseCode(),
                 command.status(),
-                command.desiredArrivalDate(),
                 command.memo(),
                 lines,
                 command.userCode(),
@@ -106,12 +95,6 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 saved.getCode(), command.status(), command.userCode(), null, now));
 
         return saved;
-    }
-
-    private void validateDesiredArrivalDate(LocalDate desiredArrivalDate) {
-        if (desiredArrivalDate.isAfter(LocalDate.now().plusYears(1))) {
-            throw new BusinessValidationException(ProcurementErrorCode.DESIRED_ARRIVAL_DATE_TOO_FAR);
-        }
     }
 
     private void validateNoDuplicateItemSkus(List<PurchaseOrderLineCommand> lines) {

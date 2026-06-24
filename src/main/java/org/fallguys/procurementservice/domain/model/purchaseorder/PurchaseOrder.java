@@ -9,7 +9,6 @@ import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOr
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -19,7 +18,6 @@ public class PurchaseOrder {
     private String vendorCode;
     private String warehouseCode;
     private PurchaseOrderStatus status;
-    private LocalDate desiredArrivalDate;
     private String memo;
     private List<PurchaseOrderLine> lines;
     private Money totalAmount;
@@ -32,12 +30,11 @@ public class PurchaseOrder {
             String vendorCode,
             String warehouseCode,
             PurchaseOrderStatus status,
-            LocalDate desiredArrivalDate,
             String memo,
             List<PurchaseOrderLine> lines,
             Money totalAmount,
             ProcurementOrderCreation creation) {
-        this(code, vendorCode, warehouseCode, status, desiredArrivalDate, memo, lines, totalAmount, creation,
+        this(code, vendorCode, warehouseCode, status, memo, lines, totalAmount, creation,
                 SagaStatus.NONE);
     }
 
@@ -47,13 +44,12 @@ public class PurchaseOrder {
             String vendorCode,
             String warehouseCode,
             PurchaseOrderStatus status,
-            LocalDate desiredArrivalDate,
             String memo,
             List<PurchaseOrderLine> lines,
             String createdBy,
             Instant createdAt) {
         return new PurchaseOrder(
-                code, vendorCode, warehouseCode, status, desiredArrivalDate, memo, lines,
+                code, vendorCode, warehouseCode, status, memo, lines,
                 calculateTotalAmount(lines),
                 new ProcurementOrderCreation(createdBy, createdAt));
     }
@@ -62,7 +58,6 @@ public class PurchaseOrder {
     public void updateDraft(
             String vendorCode,
             String warehouseCode,
-            LocalDate desiredArrivalDate,
             String memo,
             List<PurchaseOrderLine> lines) {
         if (this.status != PurchaseOrderStatus.DRAFT) {
@@ -70,7 +65,6 @@ public class PurchaseOrder {
         }
         this.vendorCode = vendorCode;
         this.warehouseCode = warehouseCode;
-        this.desiredArrivalDate = desiredArrivalDate;
         this.memo = memo;
         this.lines = lines;
         this.totalAmount = calculateTotalAmount(lines);

@@ -13,7 +13,6 @@ import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
 import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,9 +37,6 @@ public class PurchaseOrderEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private PurchaseOrderStatus status;
-
-    @Column(name = "desired_arrival_date", nullable = false)
-    private LocalDate desiredArrivalDate;
 
     @Column(name = "memo", columnDefinition = "text")
     private String memo;
@@ -69,7 +65,6 @@ public class PurchaseOrderEntity {
                 vendor.getCode(),
                 warehouseCode,
                 status,
-                desiredArrivalDate,
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
                 new Money(totalAmount),
@@ -84,7 +79,6 @@ public class PurchaseOrderEntity {
                 vendor,
                 po.getWarehouseCode(),
                 po.getStatus(),
-                po.getDesiredArrivalDate(),
                 po.getMemo(),
                 po.getTotalAmount().amount(),
                 new ArrayList<>(),
@@ -102,7 +96,6 @@ public class PurchaseOrderEntity {
         this.vendor = vendor;
         this.warehouseCode = po.getWarehouseCode();
         this.status = po.getStatus();
-        this.desiredArrivalDate = po.getDesiredArrivalDate();
         this.memo = po.getMemo();
         this.totalAmount = po.getTotalAmount().amount();
         this.sagaStatus = po.getSagaStatus();

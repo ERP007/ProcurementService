@@ -5,7 +5,6 @@ import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 
 public record PurchaseOrderDetailResponse(
@@ -14,7 +13,6 @@ public record PurchaseOrderDetailResponse(
         WarehouseInfo warehouse,
         PersonInfo approvedBy,
         Instant createdAt,
-        LocalDate desiredArrivalDate,
         String memo,
         String status,
         BigDecimal totalAmount,
@@ -47,7 +45,6 @@ public record PurchaseOrderDetailResponse(
                 new WarehouseInfo(result.warehouse().code(), result.warehouse().name()),
                 approvedBy,
                 order.getCreation().createdAt(),
-                order.getDesiredArrivalDate(),
                 order.getMemo(),
                 order.getStatus().name(),
                 order.getTotalAmount().amount(),
