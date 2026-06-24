@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderline.PurchaseOrderLineEntity;
-import org.fallguys.procurementservice.adapter.outbound.persistence.vendor.VendorEntity;
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
@@ -27,12 +26,13 @@ public class PurchaseOrderEntity {
     @Column(name = "code", nullable = false)
     private String code;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vendor_code", nullable = false)
-    private VendorEntity vendor;
+    // 공급사·창고 master와의 JPA 연관은 끊고 code + 확정 시점 박제명만 보관한다(타 서비스 소유 데이터로 취급).
+    // 변환 로직은 각 Embeddable VO 내부에 둔다.
+    @Embedded
+    private VendorRefEmbeddable vendor;
 
-    @Column(name = "warehouse_code", nullable = false)
-    private String warehouseCode;
+    @Embedded
+    private WarehouseRefEmbeddable warehouse;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -62,8 +62,8 @@ public class PurchaseOrderEntity {
     public PurchaseOrder toDomain() {
         return new PurchaseOrder(
                 code,
-                vendor.getCode(),
-                warehouseCode,
+                vendor.toDomain(),
+                warehouse.toDomain(),
                 status,
                 memo,
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
@@ -73,11 +73,11 @@ public class PurchaseOrderEntity {
         );
     }
 
-    public static PurchaseOrderEntity from(PurchaseOrder po, VendorEntity vendor) {
+    public static PurchaseOrderEntity from(PurchaseOrder po) {
         PurchaseOrderEntity entity = new PurchaseOrderEntity(
                 po.getCode(),
-                vendor,
-                po.getWarehouseCode(),
+                VendorRefEmbeddable.from(po.getVendor()),
+                WarehouseRefEmbeddable.from(po.getWarehouse()),
                 po.getStatus(),
                 po.getMemo(),
                 po.getTotalAmount().amount(),
@@ -92,9 +92,9 @@ public class PurchaseOrderEntity {
         return entity;
     }
 
-    public PurchaseOrderEntity update(PurchaseOrder po, VendorEntity vendor) {
-        this.vendor = vendor;
-        this.warehouseCode = po.getWarehouseCode();
+    public PurchaseOrderEntity update(PurchaseOrder po) {
+        this.vendor = VendorRefEmbeddable.from(po.getVendor());
+        this.warehouse = WarehouseRefEmbeddable.from(po.getWarehouse());
         this.status = po.getStatus();
         this.memo = po.getMemo();
         this.totalAmount = po.getTotalAmount().amount();

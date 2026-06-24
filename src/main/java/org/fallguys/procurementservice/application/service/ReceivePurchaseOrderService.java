@@ -15,6 +15,7 @@ import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ActorRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PendingStatusChange;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ReceivingPayload;
 import org.fallguys.procurementservice.domain.model.UserRole;
@@ -65,7 +66,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
         PurchaseOrder order = loadPurchaseOrderPort.findByCode(command.code())
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.PURCHASE_ORDER_NOT_FOUND));
 
-        loadWarehousePort.verifyActive(order.getWarehouseCode());
+        loadWarehousePort.verifyActive(order.getWarehouse().code());
 
         order.receive();
 
@@ -76,7 +77,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
         pendingStatusChangePort.save(new PendingStatusChange(
                 saved.getCode(),
                 PurchaseOrderStatus.RECEIVED,
-                command.userCode(),
+                new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 new ReceivingPayload(command.receivedDate()),
                 Instant.now()
         ));

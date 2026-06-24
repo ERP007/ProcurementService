@@ -12,6 +12,7 @@ import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ActorRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.CancellationPayload;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.UserRole;
@@ -68,7 +69,7 @@ public class CancelPurchaseOrderService implements CancelPurchaseOrderUseCase {
         savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
                 saved.getCode(),
                 PurchaseOrderStatus.CANCELED,
-                command.userCode(),
+                new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 new CancellationPayload(command.reason()),
                 Instant.now()
         ));

@@ -21,8 +21,8 @@ public record PurchaseOrderStatusResponse(
     public static PurchaseOrderStatusResponse from(PurchaseOrder order) {
         return new PurchaseOrderStatusResponse(
                 order.getCode(),
-                order.getVendorCode(),
-                order.getWarehouseCode(),
+                order.getVendor().code(),
+                order.getWarehouse().code(),
                 order.getStatus().name(),
                 order.getTotalAmount().amount(),
                 "KRW"

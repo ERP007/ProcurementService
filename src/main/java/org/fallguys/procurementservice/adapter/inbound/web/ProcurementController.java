@@ -121,7 +121,9 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
-        PurchaseOrder created = createPurchaseOrderUseCase.create(role, request.toCommand(userCode));
+        String userName = JwtClaimExtractor.extractUserName(jwt);
+        String userPosition = JwtClaimExtractor.extractPosition(jwt);
+        PurchaseOrder created = createPurchaseOrderUseCase.create(role, request.toCommand(userCode, userName, userPosition));
         return ResponseEntity.status(HttpStatus.CREATED).body(PurchaseOrderStatusResponse.from(created));
     }
 
@@ -147,8 +149,9 @@ public class ProcurementController {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
         String userName = JwtClaimExtractor.extractUserName(jwt);
+        String userPosition = JwtClaimExtractor.extractPosition(jwt);
         PurchaseOrder received = receivePurchaseOrderUseCase.receive(role,
-                new ReceivePurchaseOrderCommand(code, userCode, userName, request.receivedDate()));
+                new ReceivePurchaseOrderCommand(code, userCode, userName, userPosition, request.receivedDate()));
         return ResponseEntity.ok(PurchaseOrderStatusResponse.from(received));
     }
 
@@ -160,7 +163,10 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
-        PurchaseOrder approved = approvePurchaseOrderUseCase.approve(role, new ApprovePurchaseOrderCommand(code, userCode));
+        String userName = JwtClaimExtractor.extractUserName(jwt);
+        String userPosition = JwtClaimExtractor.extractPosition(jwt);
+        PurchaseOrder approved = approvePurchaseOrderUseCase.approve(role,
+                new ApprovePurchaseOrderCommand(code, userCode, userName, userPosition));
         return ResponseEntity.ok(PurchaseOrderStatusResponse.from(approved));
     }
 
@@ -173,7 +179,10 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
-        PurchaseOrder canceled = cancelPurchaseOrderUseCase.cancel(role, new CancelPurchaseOrderCommand(code, userCode, request.reason()));
+        String userName = JwtClaimExtractor.extractUserName(jwt);
+        String userPosition = JwtClaimExtractor.extractPosition(jwt);
+        PurchaseOrder canceled = cancelPurchaseOrderUseCase.cancel(role,
+                new CancelPurchaseOrderCommand(code, userCode, userName, userPosition, request.reason()));
         return ResponseEntity.ok(PurchaseOrderStatusResponse.from(canceled));
     }
 
@@ -185,7 +194,9 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         String userCode = JwtClaimExtractor.extractUserCode(jwt);
-        PurchaseOrder created = createPurchaseOrderUseCase.create(role, request.toCommand(userCode));
+        String userName = JwtClaimExtractor.extractUserName(jwt);
+        String userPosition = JwtClaimExtractor.extractPosition(jwt);
+        PurchaseOrder created = createPurchaseOrderUseCase.create(role, request.toCommand(userCode, userName, userPosition));
         return ResponseEntity.status(HttpStatus.CREATED).body(PurchaseOrderStatusResponse.from(created));
     }
 }

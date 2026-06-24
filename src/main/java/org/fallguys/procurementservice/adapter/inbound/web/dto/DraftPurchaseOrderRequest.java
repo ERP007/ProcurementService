@@ -24,13 +24,15 @@ public record DraftPurchaseOrderRequest(
         @Valid
         List<PurchaseOrderLineRequest> lines
 ) {
-    public CreatePurchaseOrderCommand toCommand(String userCode) {
+    public CreatePurchaseOrderCommand toCommand(String userCode, String userName, String userPosition) {
         List<PurchaseOrderLineCommand> lineCommands = lines == null
                 ? List.of()
                 : lines.stream().map(PurchaseOrderLineRequest::toCommand).toList();
 
         return new CreatePurchaseOrderCommand(
                 userCode,
+                userName,
+                userPosition,
                 vendorCode,
                 warehouseCode,
                 memo,

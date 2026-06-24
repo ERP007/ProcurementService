@@ -13,19 +13,19 @@ import java.time.Instant;
  *
  * poCode     : 대상 발주서 코드(애그리거트당 동시 진행 saga는 1건이므로 사실상 PK)
  * status     : 확정 시 기록될 전이 상태
- * actorCode  : 행위를 일으킨 담당자 코드(행위 시점 스냅샷)
+ * actor      : 행위를 일으킨 행위자(행위 시점 박제: code·name·position)
  * payload    : 상태별 부가 데이터(없으면 null)
  * occurredAt : 행위 시점. 이력 승격 시 history.createdAt으로 그대로 보존해 KPI 타임스탬프를 유지한다.
  */
 public record PendingStatusChange(
         String poCode,
         PurchaseOrderStatus status,
-        String actorCode,
+        ActorRef actor,
         StatusChangePayload payload,
         Instant occurredAt
 ) {
     // 확정된 milestone으로 승격. 행위 시점(occurredAt)을 이력 시각으로 보존한다.
     public PurchaseOrderStatusHistory toHistory() {
-        return new PurchaseOrderStatusHistory(poCode, status, actorCode, payload, occurredAt);
+        return new PurchaseOrderStatusHistory(poCode, status, actor, payload, occurredAt);
     }
 }

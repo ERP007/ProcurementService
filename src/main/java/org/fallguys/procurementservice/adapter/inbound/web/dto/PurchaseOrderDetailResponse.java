@@ -26,7 +26,7 @@ public record PurchaseOrderDetailResponse(
     public static PurchaseOrderDetailResponse from(GetPurchaseOrderResult result) {
         PurchaseOrder order = result.order();
 
-        PersonInfo approvedBy = PersonInfo.from(result.approvedByUser());
+        PersonInfo approvedBy = PersonInfo.from(result.approvedBy());
 
         List<LineInfo> lines = order.getLines().stream()
                 .map(l -> new LineInfo(
@@ -41,8 +41,8 @@ public record PurchaseOrderDetailResponse(
 
         return new PurchaseOrderDetailResponse(
                 order.getCode(),
-                new VendorInfo(result.vendor().getCode(), result.vendor().getName()),
-                new WarehouseInfo(result.warehouse().code(), result.warehouse().name()),
+                new VendorInfo(result.vendorCode(), result.vendorName()),
+                new WarehouseInfo(result.warehouseCode(), result.warehouseName()),
                 approvedBy,
                 order.getCreation().createdAt(),
                 order.getMemo(),

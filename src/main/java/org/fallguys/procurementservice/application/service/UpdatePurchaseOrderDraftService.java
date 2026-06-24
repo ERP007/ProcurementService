@@ -16,6 +16,8 @@ import org.fallguys.procurementservice.domain.exception.ResourceNotFoundExceptio
 import org.fallguys.procurementservice.domain.model.*;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,9 +83,10 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
 
         List<PurchaseOrderLine> lines = buildDraftLines(command.lines());
 
+        // DRAFT는 미확정 → 공급사·창고명 박제 X. code만 보관하고 조회 시 live로 채운다.
         existing.updateDraft(
-                command.vendorCode(),
-                command.warehouseCode(),
+                VendorRef.codeOnly(command.vendorCode()),
+                WarehouseRef.codeOnly(command.warehouseCode()),
                 command.memo(),
                 lines
         );

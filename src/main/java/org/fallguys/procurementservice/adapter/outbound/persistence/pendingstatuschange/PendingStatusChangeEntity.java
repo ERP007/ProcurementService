@@ -3,6 +3,7 @@ package org.fallguys.procurementservice.adapter.outbound.persistence.pendingstat
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderhistory.ActorRefEmbeddable;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PendingStatusChange;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.StatusChangePayload;
@@ -29,8 +30,9 @@ public class PendingStatusChangeEntity {
     @Column(name = "status", nullable = false)
     private PurchaseOrderStatus status;
 
-    @Column(name = "actor_code", nullable = false)
-    private String actorCode;
+    // 행위 시점에 박제한 행위자(code·name·position). 변환은 Embeddable 내부.
+    @Embedded
+    private ActorRefEmbeddable actor;
 
     // 상태별 부가 데이터 JSON. 직렬화/역직렬화는 어댑터(ObjectMapper)가 담당.
     @JdbcTypeCode(SqlTypes.JSON)
@@ -45,13 +47,13 @@ public class PendingStatusChangeEntity {
         PendingStatusChangeEntity entity = new PendingStatusChangeEntity();
         entity.poCode = domain.poCode();
         entity.status = domain.status();
-        entity.actorCode = domain.actorCode();
+        entity.actor = ActorRefEmbeddable.from(domain.actor());
         entity.payload = payloadJson;
         entity.occurredAt = domain.occurredAt();
         return entity;
     }
 
     public PendingStatusChange toDomain(StatusChangePayload payload) {
-        return new PendingStatusChange(poCode, status, actorCode, payload, occurredAt);
+        return new PendingStatusChange(poCode, status, actor.toDomain(), payload, occurredAt);
     }
 }

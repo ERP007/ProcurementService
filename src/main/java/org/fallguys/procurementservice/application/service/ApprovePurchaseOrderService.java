@@ -7,9 +7,11 @@ import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
@@ -17,7 +19,11 @@ import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.*;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
+import org.fallguys.procurementservice.domain.model.vendor.Vendor;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ActorRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.springframework.stereotype.Service;
@@ -35,6 +41,7 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
     private final LoadItemPort loadItemPort;
     private final LoadVendorPort loadVendorPort;
     private final LoadWarehousePort loadWarehousePort;
+    private final LoadWarehouseInfoPort loadWarehouseInfoPort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
 
@@ -82,21 +89,26 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
 
         validateHasLines(purchaseOrder.getLines());
 
-        loadVendorPort.findActiveByCode(purchaseOrder.getVendorCode())
+        Vendor vendor = loadVendorPort.findActiveByCode(purchaseOrder.getVendor().code())
                 .orElseThrow(() -> new ResourceNotFoundException(ProcurementErrorCode.VENDOR_NOT_FOUND));
 
-        loadWarehousePort.verifyActive(purchaseOrder.getWarehouseCode());
+        loadWarehousePort.verifyActive(purchaseOrder.getWarehouse().code());
+        WarehouseInfo warehouseInfo = loadWarehouseInfoPort.findByCode(purchaseOrder.getWarehouse().code());
 
         List<PurchaseOrderLine> validatedLines = buildValidatedLines(purchaseOrder.getLines());
 
-        purchaseOrder.approve(validatedLines);
+        // 확정 시점: 신뢰 출처(공급사·창고 master)에서 조회한 이름을 박제한다.
+        purchaseOrder.approve(
+                VendorRef.snapshot(vendor.getCode(), vendor.getName()),
+                WarehouseRef.snapshot(warehouseInfo.code(), warehouseInfo.name()),
+                validatedLines);
 
         PurchaseOrder saved = savePurchaseOrderPort.save(purchaseOrder);
 
         savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
                 saved.getCode(),
                 PurchaseOrderStatus.APPROVED,
-                command.userCode(),
+                new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 null,
                 Instant.now()
         ));

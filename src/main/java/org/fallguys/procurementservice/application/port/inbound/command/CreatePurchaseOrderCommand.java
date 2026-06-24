@@ -6,6 +6,8 @@ import java.util.List;
 
 public record CreatePurchaseOrderCommand(
         String userCode,
+        String userName,
+        String userPosition,
         String vendorCode,
         String warehouseCode,
         String memo,

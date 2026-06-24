@@ -23,6 +23,6 @@ public record InboundStockPayload(
         List<Line> lines = order.getLines().stream()
                 .map(line -> new Line(line.getItemSku(), line.getOrderQuantity(), line.getId()))
                 .toList();
-        return new InboundStockPayload(order.getCode(), order.getWarehouseCode(), executor, lines);
+        return new InboundStockPayload(order.getCode(), order.getWarehouse().code(), executor, lines);
     }
 }

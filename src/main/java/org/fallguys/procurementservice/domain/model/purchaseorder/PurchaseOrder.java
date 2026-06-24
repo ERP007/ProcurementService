@@ -15,8 +15,8 @@ import java.util.List;
 @AllArgsConstructor
 public class PurchaseOrder {
     private final String code;
-    private String vendorCode;
-    private String warehouseCode;
+    private VendorRef vendor;
+    private WarehouseRef warehouse;
     private PurchaseOrderStatus status;
     private String memo;
     private List<PurchaseOrderLine> lines;
@@ -27,44 +27,46 @@ public class PurchaseOrder {
     // 기존 시그니처 호환 생성자. saga 상태는 NONE으로 시작한다(영속 복원 시 전체 생성자 사용).
     public PurchaseOrder(
             String code,
-            String vendorCode,
-            String warehouseCode,
+            VendorRef vendor,
+            WarehouseRef warehouse,
             PurchaseOrderStatus status,
             String memo,
             List<PurchaseOrderLine> lines,
             Money totalAmount,
             ProcurementOrderCreation creation) {
-        this(code, vendorCode, warehouseCode, status, memo, lines, totalAmount, creation,
+        this(code, vendor, warehouse, status, memo, lines, totalAmount, creation,
                 SagaStatus.NONE);
     }
 
     // 신규 발주서를 생성한다. 총액은 라인 합계로 계산하고 생성 정보를 기록한다.
+    // vendor·warehouse는 확정(APPROVED) 생성이면 박제(snapshot), DRAFT면 codeOnly로 서비스가 구성해 넘긴다.
     public static PurchaseOrder create(
             String code,
-            String vendorCode,
-            String warehouseCode,
+            VendorRef vendor,
+            WarehouseRef warehouse,
             PurchaseOrderStatus status,
             String memo,
             List<PurchaseOrderLine> lines,
             String createdBy,
             Instant createdAt) {
         return new PurchaseOrder(
-                code, vendorCode, warehouseCode, status, memo, lines,
+                code, vendor, warehouse, status, memo, lines,
                 calculateTotalAmount(lines),
                 new ProcurementOrderCreation(createdBy, createdAt));
     }
 
     // DRAFT 발주서의 내용을 수정한다. 총액은 라인 합계로 재계산하고 생성 정보는 유지한다.
+    // DRAFT는 미확정이므로 vendor·warehouse는 codeOnly(표시명 박제 X)로 받는다.
     public void updateDraft(
-            String vendorCode,
-            String warehouseCode,
+            VendorRef vendor,
+            WarehouseRef warehouse,
             String memo,
             List<PurchaseOrderLine> lines) {
         if (this.status != PurchaseOrderStatus.DRAFT) {
             throw new BusinessValidationException(ProcurementErrorCode.PURCHASE_ORDER_NOT_DRAFT);
         }
-        this.vendorCode = vendorCode;
-        this.warehouseCode = warehouseCode;
+        this.vendor = vendor;
+        this.warehouse = warehouse;
         this.memo = memo;
         this.lines = lines;
         this.totalAmount = calculateTotalAmount(lines);
@@ -77,11 +79,14 @@ public class PurchaseOrder {
     }
 
     // 상태 전환은 상태값만 바꾼다. 전환 부가 정보(담당자·시각·입고일·취소사유)는 이력(history) 테이블에 적재한다.
-    public void approve(List<PurchaseOrderLine> lines) {
+    // 확정 시점이므로 vendor·warehouse 표시명을 박제(snapshot)한다. 이후 master가 바뀌어도 발주 당시 값이 보존된다.
+    public void approve(VendorRef vendor, WarehouseRef warehouse, List<PurchaseOrderLine> lines) {
         if (this.status != PurchaseOrderStatus.DRAFT) {
             throw new BusinessValidationException(ProcurementErrorCode.PURCHASE_ORDER_NOT_DRAFT);
         }
         this.status = PurchaseOrderStatus.APPROVED;
+        this.vendor = vendor;
+        this.warehouse = warehouse;
         this.lines = lines;
     }
 
