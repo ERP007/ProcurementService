@@ -15,6 +15,7 @@ public record PurchaseOrderDetailResponse(
         Instant createdAt,
         String memo,
         String status,
+        String progress,
         BigDecimal totalAmount,
         String currency,
         List<LineInfo> lines
@@ -47,6 +48,7 @@ public record PurchaseOrderDetailResponse(
                 order.getCreation().createdAt(),
                 order.getMemo(),
                 order.getStatus().name(),
+                order.progress().name(),
                 order.getTotalAmount().amount(),
                 "KRW",
                 lines

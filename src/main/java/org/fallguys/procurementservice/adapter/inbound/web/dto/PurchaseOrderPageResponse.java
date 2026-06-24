@@ -9,7 +9,7 @@ public record PurchaseOrderPageResponse(
         int page,
         int size,
         long totalElements,
-        int totalPages,
+        long totalPages,
         boolean hasPrevious,
         boolean hasNext
 ) {

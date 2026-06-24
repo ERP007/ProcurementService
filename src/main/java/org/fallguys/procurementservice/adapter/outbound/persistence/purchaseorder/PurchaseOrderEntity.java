@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderline.PurchaseOrderLineEntity;
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderProgress;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderSummary;
 import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
@@ -64,6 +65,10 @@ public class PurchaseOrderEntity {
     @Column(name = "saga_status", nullable = false)
     private SagaStatus sagaStatus;
 
+    // 직전 입고 saga 실패 사유. 보상 시 기록, 진행 페이지 폴링 응답 노출용(없으면 null).
+    @Column(name = "last_failure_reason", columnDefinition = "text")
+    private String lastFailureReason;
+
     public PurchaseOrder toDomain() {
         return new PurchaseOrder(
                 code,
@@ -74,7 +79,8 @@ public class PurchaseOrderEntity {
                 lines.stream().map(PurchaseOrderLineEntity::toDomain).toList(),
                 new Money(totalAmount),
                 creation.toDomain(),
-                sagaStatus
+                sagaStatus,
+                lastFailureReason
         );
     }
 
@@ -90,7 +96,8 @@ public class PurchaseOrderEntity {
                 0, // lineCount: @Formula 파생 값, 조회 시 재계산되므로 무시됨
                 CreationEmbeddable.from(po.getCreation()),
                 null,
-                po.getSagaStatus()
+                po.getSagaStatus(),
+                po.getLastFailureReason()
         );
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, entity))
@@ -106,7 +113,8 @@ public class PurchaseOrderEntity {
                 creation.createdAt(),
                 lineCount,
                 Money.of(totalAmount),
-                status
+                status,
+                PurchaseOrderProgress.from(status, sagaStatus)
         );
     }
 
@@ -117,6 +125,7 @@ public class PurchaseOrderEntity {
         this.memo = po.getMemo();
         this.totalAmount = po.getTotalAmount().amount();
         this.sagaStatus = po.getSagaStatus();
+        this.lastFailureReason = po.getLastFailureReason();
         this.lines.clear();
         po.getLines().stream()
                 .map(line -> PurchaseOrderLineEntity.from(line, this))

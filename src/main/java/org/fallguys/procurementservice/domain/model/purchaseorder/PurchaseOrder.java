@@ -24,6 +24,9 @@ public class PurchaseOrder {
     private ProcurementOrderCreation creation;
     private SagaStatus sagaStatus;
 
+    // 직전 입고 saga 실패 사유. 보상 시 기록, 재시도(receive) 시 초기화. 진행 페이지 노출용.
+    private String lastFailureReason;
+
     // 기존 시그니처 호환 생성자. saga 상태는 NONE으로 시작한다(영속 복원 시 전체 생성자 사용).
     public PurchaseOrder(
             String code,
@@ -35,7 +38,20 @@ public class PurchaseOrder {
             Money totalAmount,
             ProcurementOrderCreation creation) {
         this(code, vendor, warehouse, status, memo, lines, totalAmount, creation,
-                SagaStatus.NONE);
+                SagaStatus.NONE, null);
+    }
+
+    /** 화면 표시용 진행 상태(status·sagaStatus 조합 파생). 조합 규칙은 PurchaseOrderProgress가 소유. */
+    public PurchaseOrderProgress progress() {
+        return PurchaseOrderProgress.from(status, sagaStatus);
+    }
+
+    /** 진행 페이지 폴링용 결과 구분. 폴링 지속 여부(pending)·성패를 백엔드가 saga 상태로 판단한다. */
+    public ProgressOutcome sagaOutcome() {
+        if (sagaStatus.inProgress()) {
+            return ProgressOutcome.PENDING;
+        }
+        return sagaStatus == SagaStatus.FAILED ? ProgressOutcome.FAILED : ProgressOutcome.SUCCESS;
     }
 
     // 신규 발주서를 생성한다. 총액은 라인 합계로 계산하고 생성 정보를 기록한다.
@@ -101,6 +117,8 @@ public class PurchaseOrder {
         }
         this.status = PurchaseOrderStatus.RECEIVED;
         this.sagaStatus = SagaStatus.SENDING;
+        // 재시도이므로 직전 실패 사유를 초기화한다(이전 보상 흔적이 진행 페이지에 남지 않도록).
+        this.lastFailureReason = null;
     }
 
     // saga 진행: 이벤트 발행 완료(reply 대기). SENDING→PROCESSING.
@@ -120,12 +138,14 @@ public class PurchaseOrder {
     }
 
     // 보상: 재고 입고 실패 reply 수신. RECEIVED→직전 상태(APPROVED) 롤백, saga=FAILED.
-    public void compensateInbound() {
+    // 실패 사유를 박제해 진행 페이지 폴링 응답에 노출한다(재시도 시 receive에서 초기화).
+    public void compensateInbound(String failureReason) {
         if (this.status != PurchaseOrderStatus.RECEIVED) {
             throw new BusinessValidationException(ProcurementErrorCode.INBOUND_COMPENSATION_NOT_ALLOWED);
         }
         this.status = PurchaseOrderStatus.APPROVED;
         this.sagaStatus = SagaStatus.FAILED;
+        this.lastFailureReason = failureReason;
     }
 
     public void cancel() {

@@ -1,5 +1,6 @@
 package org.fallguys.procurementservice.adapter.inbound.web.dto;
 
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderProgress;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderSummary;
 
@@ -14,7 +15,8 @@ public record PurchaseOrderSummaryResponse(
         int lineCount,
         BigDecimal totalAmount,
         String currency,
-        PurchaseOrderStatus status
+        PurchaseOrderStatus status,
+        PurchaseOrderProgress progress
 ) {
     public static PurchaseOrderSummaryResponse from(PurchaseOrderSummary summary) {
         return new PurchaseOrderSummaryResponse(
@@ -25,7 +27,8 @@ public record PurchaseOrderSummaryResponse(
                 summary.lineCount(),
                 summary.totalAmount().amount(),
                 "KRW",
-                summary.status()
+                summary.status(),
+                summary.progress()
         );
     }
 }

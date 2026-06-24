@@ -45,7 +45,7 @@ public class CompensateInboundService implements CompensateInboundUseCase {
             return;
         }
 
-        order.compensateInbound();
+        order.compensateInbound(errorMessage);
         PurchaseOrder saved = savePurchaseOrderPort.save(order);
 
         pendingStatusChangePort.removeByCode(purchaseOrderCode);

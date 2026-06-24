@@ -11,5 +11,6 @@ public record PurchaseOrderSummary(
         Instant createdAt,
         int lineCount,
         Money totalAmount,
-        PurchaseOrderStatus status
+        PurchaseOrderStatus status,
+        PurchaseOrderProgress progress
 ) {}

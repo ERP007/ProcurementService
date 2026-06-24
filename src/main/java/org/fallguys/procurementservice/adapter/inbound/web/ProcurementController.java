@@ -6,6 +6,7 @@ import org.fallguys.procurementservice.adapter.inbound.web.dto.CancelPurchaseOrd
 import org.fallguys.procurementservice.adapter.inbound.web.dto.DraftPurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.CreatePurchaseOrderRequest;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderDetailResponse;
+import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderProgressResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderHistoryResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.PurchaseOrderStatusResponse;
 import org.fallguys.procurementservice.adapter.inbound.web.dto.ReceivePurchaseOrderRequest;
@@ -21,6 +22,7 @@ import org.fallguys.procurementservice.application.port.inbound.usecase.CreatePu
 import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderKpiUseCase;
 import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderHistoriesUseCase;
 import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderUseCase;
+import org.fallguys.procurementservice.application.port.inbound.usecase.GetPurchaseOrderProgressUseCase;
 import org.fallguys.procurementservice.application.port.inbound.command.ReceivePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.usecase.ReceivePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.inbound.usecase.SearchActiveVendorsUseCase;
@@ -52,6 +54,7 @@ public class ProcurementController {
     private final GetPurchaseOrderKpiUseCase getPurchaseOrderKpiUseCase;
     private final SearchPurchaseOrderUseCase searchPurchaseOrderUseCase;
     private final GetPurchaseOrderUseCase getPurchaseOrderUseCase;
+    private final GetPurchaseOrderProgressUseCase getPurchaseOrderProgressUseCase;
     private final GetPurchaseOrderHistoriesUseCase getPurchaseOrderHistoriesUseCase;
     private final ReceivePurchaseOrderUseCase receivePurchaseOrderUseCase;
     private final CancelPurchaseOrderUseCase cancelPurchaseOrderUseCase;
@@ -64,6 +67,16 @@ public class ProcurementController {
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
         return ResponseEntity.ok(PurchaseOrderDetailResponse.from(getPurchaseOrderUseCase.get(role, code)));
+    }
+
+    @Operation(summary = "구매 발주 진행 상태 조회", description = "status·saga 조합으로 파생한 진행 상태를 폴링용으로 반환한다.")
+    @GetMapping("/{code}/progress")
+    public ResponseEntity<PurchaseOrderProgressResponse> getProgress(
+            @AuthenticationPrincipal Jwt jwt,
+            @Parameter(description = "발주 코드") @PathVariable String code
+    ) {
+        UserRole role = JwtClaimExtractor.extractRole(jwt);
+        return ResponseEntity.ok(PurchaseOrderProgressResponse.from(getPurchaseOrderProgressUseCase.get(role, code)));
     }
 
     @Operation(summary = "구매 발주 이력 조회", description = "발주 상태 변경 이력을 최신순으로 반환한다.")

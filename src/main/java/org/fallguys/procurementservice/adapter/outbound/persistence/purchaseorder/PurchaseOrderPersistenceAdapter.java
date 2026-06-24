@@ -66,7 +66,7 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
                 .map(PurchaseOrderEntity::toSummary)
                 .toList();
 
-        return new PurchaseOrderPage(summaries, query.page(), query.size(), page.getTotalElements());
+        return new PurchaseOrderPage(summaries, query.page(), query.size(), page.getTotalElements(), page.getTotalPages());
     }
 
     private Specification<PurchaseOrderEntity> buildSpec(SearchPurchaseOrderQuery query) {
