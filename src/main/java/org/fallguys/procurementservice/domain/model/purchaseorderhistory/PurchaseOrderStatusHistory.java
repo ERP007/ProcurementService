@@ -9,26 +9,26 @@ import java.time.Instant;
  *
  * poCode      : 대상 발주서 코드
  * status      : 전이된 상태
- * actorCode   : 상태를 변경한 담당자 코드
+ * actor       : 상태를 변경한 행위자(행위 시점 박제: code·name·position)
  * payload     : 상태별 부가 데이터(없으면 null)
  * createdAt   : 상태 변경 시각
  */
 public record PurchaseOrderStatusHistory(
         String poCode,
         PurchaseOrderStatus status,
-        String actorCode,
+        ActorRef actor,
         StatusChangePayload payload,
         Instant createdAt
 ) {
     public static PurchaseOrderStatusHistory of(
-            String poCode, PurchaseOrderStatus status, String actorCode,
+            String poCode, PurchaseOrderStatus status, ActorRef actor,
             StatusChangePayload payload, Instant createdAt) {
-        return new PurchaseOrderStatusHistory(poCode, status, actorCode, payload, createdAt);
+        return new PurchaseOrderStatusHistory(poCode, status, actor, payload, createdAt);
     }
 
     // 부가 데이터 없는 전이(예: 자동 보상 롤백)용. payload는 null.
     public static PurchaseOrderStatusHistory of(
-            String poCode, PurchaseOrderStatus status, String actorCode, Instant createdAt) {
-        return new PurchaseOrderStatusHistory(poCode, status, actorCode, null, createdAt);
+            String poCode, PurchaseOrderStatus status, ActorRef actor, Instant createdAt) {
+        return new PurchaseOrderStatusHistory(poCode, status, actor, null, createdAt);
     }
 }

@@ -2,18 +2,12 @@ package org.fallguys.procurementservice.adapter.outbound.persistence.purchaseord
 
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderline.PurchaseOrderLineEntity;
-import org.fallguys.procurementservice.adapter.outbound.persistence.vendor.VendorEntity;
-import org.fallguys.procurementservice.adapter.outbound.persistence.vendor.VendorJpaDao;
 import org.fallguys.procurementservice.application.port.inbound.query.SearchPurchaseOrderQuery;
 import org.fallguys.procurementservice.application.port.inbound.model.SortDirection;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderKpiPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SearchPurchaseOrderPort;
-import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
-import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
-import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderKpi;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderPage;
@@ -26,14 +20,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -41,18 +31,13 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
         LoadPurchaseOrderKpiPort, SearchPurchaseOrderPort {
 
     private final PurchaseOrderJpaDao purchaseOrderJpaDao;
-    private final VendorJpaDao vendorJpaDao;
 
     @Override
     public PurchaseOrder save(PurchaseOrder purchaseOrder) {
-        VendorEntity vendor = vendorJpaDao.findById(purchaseOrder.getVendorCode())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        ProcurementErrorCode.VENDOR_NOT_FOUND_ON_DETAIL,
-                        ProcurementErrorCode.VENDOR_NOT_FOUND_ON_DETAIL.getMessage() + ": " + purchaseOrder.getVendorCode()
-                ));
+        // 공급사 master와의 FK 연관을 끊었으므로 vendor code/snapshot은 도메인 값 그대로 저장한다.
         PurchaseOrderEntity entity = purchaseOrderJpaDao.findById(purchaseOrder.getCode())
-                .map(existing -> existing.update(purchaseOrder, vendor))
-                .orElseGet(() -> PurchaseOrderEntity.from(purchaseOrder, vendor));
+                .map(existing -> existing.update(purchaseOrder))
+                .orElseGet(() -> PurchaseOrderEntity.from(purchaseOrder));
         return purchaseOrderJpaDao.save(entity).toDomain();
     }
 
@@ -62,12 +47,11 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
     }
 
     @Override
-    public PurchaseOrderKpi loadKpi(LocalDate today) {
+    public PurchaseOrderKpi loadKpi() {
         long totalCount = purchaseOrderJpaDao.countByStatusNot(PurchaseOrderStatus.CANCELED);
         long draftCount = purchaseOrderJpaDao.countByStatus(PurchaseOrderStatus.DRAFT);
         long approvedCount = purchaseOrderJpaDao.countByStatus(PurchaseOrderStatus.APPROVED);
-        long delayedCount = purchaseOrderJpaDao.countByStatusAndDesiredArrivalDateBefore(PurchaseOrderStatus.APPROVED, today);
-        return new PurchaseOrderKpi(totalCount, draftCount, approvedCount, delayedCount);
+        return new PurchaseOrderKpi(totalCount, draftCount, approvedCount);
     }
 
     @Override
@@ -79,10 +63,10 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
         );
 
         List<PurchaseOrderSummary> summaries = page.getContent().stream()
-                .map(this::toSummary)
+                .map(PurchaseOrderEntity::toSummary)
                 .toList();
 
-        return new PurchaseOrderPage(summaries, query.page(), query.size(), page.getTotalElements());
+        return new PurchaseOrderPage(summaries, query.page(), query.size(), page.getTotalElements(), page.getTotalPages());
     }
 
     private Specification<PurchaseOrderEntity> buildSpec(SearchPurchaseOrderQuery query) {
@@ -91,9 +75,11 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
 
             if (query.search() != null && !query.search().isBlank()) {
                 String pattern = "%" + query.search().toLowerCase() + "%";
+                // vendor master JOIN을 끊었으므로 박제된 공급사명(snapshot)으로 검색한다.
+                // DRAFT는 snapshot이 null이라 이름 검색 대상에서 자연히 제외된다.
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("code")), pattern),
-                        cb.like(cb.lower(root.get("vendor").get("name")), pattern)
+                        cb.like(cb.lower(root.get("vendor").get("nameSnapshot")), pattern)
                 ));
             }
 
@@ -116,39 +102,9 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
         Sort.Direction direction = query.sortDirection() == SortDirection.ASC
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
         String property = switch (query.sortField()) {
-            case DESIRED_ARRIVAL_DATE -> "desiredArrivalDate";
             case TOTAL_AMOUNT -> "totalAmount";
             default -> "creation.createdAt";
         };
         return Sort.by(direction, property);
-    }
-
-    private PurchaseOrderSummary toSummary(PurchaseOrderEntity entity) {
-        List<PurchaseOrderLineEntity> lines = entity.getLines();
-
-        Set<String> units = lines.stream()
-                .map(PurchaseOrderLineEntity::getUnitSnapshot)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        Integer totalQuantity = null;
-        String unit = null;
-        if (units.size() == 1) {
-            totalQuantity = lines.stream().mapToInt(PurchaseOrderLineEntity::getOrderQuantity).sum();
-            unit = units.iterator().next();
-        }
-
-        return new PurchaseOrderSummary(
-                entity.getCode(),
-                entity.getVendor().getCode(),
-                entity.getVendor().getName(),
-                entity.getCreation().createdAt(),
-                entity.getDesiredArrivalDate(),
-                lines.size(),
-                totalQuantity,
-                unit,
-                Money.of(entity.getTotalAmount()),
-                entity.getStatus()
-        );
     }
 }

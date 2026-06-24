@@ -18,12 +18,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class SearchActiveVendorsService implements SearchActiveVendorsUseCase {
 
-    private static final Set<UserRole> ALLOWED_ROLES = EnumSet.of(
-            UserRole.ADMIN,
-            UserRole.HQ_MANAGER,
-            UserRole.HQ_STAFF
-    );
-
     private final LoadVendorPort loadVendorPort;
 
     /**
@@ -41,7 +35,7 @@ public class SearchActiveVendorsService implements SearchActiveVendorsUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<Vendor> searchActiveVendors(UserRole role, String search) {
-        if (!ALLOWED_ROLES.contains(role)) {
+        if (!role.isHqUser()) {
             throw new ForbiddenException(CommonErrorCode.FORBIDDEN);
         }
         return loadVendorPort.findAllActiveByNameContaining(search);

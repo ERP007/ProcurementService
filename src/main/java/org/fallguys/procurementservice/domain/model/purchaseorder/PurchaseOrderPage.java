@@ -6,12 +6,9 @@ public record PurchaseOrderPage(
         List<PurchaseOrderSummary> content,
         int page,
         int size,
-        long totalElements
+        long totalElements,
+        long totalPages
 ) {
-    public int totalPages() {
-        return size == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
-    }
-
     public boolean hasPrevious() {
         return page > 1;
     }

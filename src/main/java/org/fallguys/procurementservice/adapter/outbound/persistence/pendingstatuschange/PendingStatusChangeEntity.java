@@ -1,27 +1,28 @@
-package org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderhistory;
+package org.fallguys.procurementservice.adapter.outbound.persistence.pendingstatuschange;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.fallguys.procurementservice.adapter.outbound.persistence.purchaseorderhistory.ActorRefEmbeddable;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
-import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PendingStatusChange;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.StatusChangePayload;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
+/**
+ * saga in-flight 상태 전환 staging. po_code가 PK(애그리거트당 동시 진행 saga 1건).
+ * 확정(DONE) 시 이력으로 승격 후 삭제, 실패(FAILED) 시 이력 없이 삭제된다.
+ */
 @Entity
-@Table(name = "purchase_order_status_history",
-        indexes = @Index(name = "idx_po_status_history_po_code", columnList = "po_code"))
+@Table(name = "pending_status_change")
 @Getter
 @NoArgsConstructor
-public class PurchaseOrderStatusHistoryEntity {
+public class PendingStatusChangeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @Column(name = "po_code", nullable = false)
     private String poCode;
 
@@ -38,21 +39,21 @@ public class PurchaseOrderStatusHistoryEntity {
     @Column(name = "payload")
     private String payload;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    @Column(name = "occurred_at", nullable = false)
+    private Instant occurredAt;
 
     // payload는 어댑터가 직렬화한 JSON 문자열을 받는다(부가 데이터 없으면 null).
-    public static PurchaseOrderStatusHistoryEntity from(PurchaseOrderStatusHistory domain, String payloadJson) {
-        PurchaseOrderStatusHistoryEntity entity = new PurchaseOrderStatusHistoryEntity();
+    public static PendingStatusChangeEntity from(PendingStatusChange domain, String payloadJson) {
+        PendingStatusChangeEntity entity = new PendingStatusChangeEntity();
         entity.poCode = domain.poCode();
         entity.status = domain.status();
         entity.actor = ActorRefEmbeddable.from(domain.actor());
         entity.payload = payloadJson;
-        entity.createdAt = domain.createdAt();
+        entity.occurredAt = domain.occurredAt();
         return entity;
     }
 
-    public PurchaseOrderStatusHistory toDomain(StatusChangePayload payload) {
-        return new PurchaseOrderStatusHistory(poCode, status, actor.toDomain(), payload, createdAt);
+    public PendingStatusChange toDomain(StatusChangePayload payload) {
+        return new PendingStatusChange(poCode, status, actor.toDomain(), payload, occurredAt);
     }
 }

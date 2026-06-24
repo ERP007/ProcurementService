@@ -3,17 +3,13 @@ package org.fallguys.procurementservice.domain.model.purchaseorder;
 import org.fallguys.procurementservice.domain.model.Money;
 
 import java.time.Instant;
-import java.time.LocalDate;
 
 public record PurchaseOrderSummary(
         String code,
-        String vendorCode,
-        String vendorName,
+        VendorRef vendor,
         Instant createdAt,
-        LocalDate desiredArrivalDate,
         int lineCount,
-        Integer totalQuantity,
-        String unit,
         Money totalAmount,
-        PurchaseOrderStatus status
+        PurchaseOrderStatus status,
+        PurchaseOrderProgress progress
 ) {}
