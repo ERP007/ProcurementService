@@ -21,8 +21,8 @@ public record PurchaseOrderSummaryResponse(
     public static PurchaseOrderSummaryResponse from(PurchaseOrderSummary summary) {
         return new PurchaseOrderSummaryResponse(
                 summary.code(),
-                summary.vendorCode(),
-                summary.vendorName(),
+                summary.vendor().code(),
+                summary.vendor().nameSnapshot(),
                 summary.createdAt(),
                 summary.lineCount(),
                 summary.totalAmount().amount(),

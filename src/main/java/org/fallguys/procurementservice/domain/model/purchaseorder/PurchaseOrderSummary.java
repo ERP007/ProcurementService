@@ -6,8 +6,7 @@ import java.time.Instant;
 
 public record PurchaseOrderSummary(
         String code,
-        String vendorCode,
-        String vendorName,
+        VendorRef vendor,
         Instant createdAt,
         int lineCount,
         Money totalAmount,

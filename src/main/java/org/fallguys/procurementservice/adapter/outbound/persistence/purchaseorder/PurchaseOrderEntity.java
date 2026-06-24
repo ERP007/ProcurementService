@@ -108,8 +108,7 @@ public class PurchaseOrderEntity {
     public PurchaseOrderSummary toSummary() {
         return new PurchaseOrderSummary(
                 code,
-                vendor.code(),
-                vendor.nameSnapshot(),
+                vendor.toDomain(),
                 creation.createdAt(),
                 lineCount,
                 Money.of(totalAmount),
