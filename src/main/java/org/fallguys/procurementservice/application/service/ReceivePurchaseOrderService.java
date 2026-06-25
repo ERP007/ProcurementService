@@ -9,6 +9,8 @@ import org.fallguys.procurementservice.application.port.outbound.port.LoadPurcha
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.PendingStatusChangePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SyncInboundStockPort;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
@@ -19,6 +21,7 @@ import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ActorRe
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PendingStatusChange;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ReceivingPayload;
 import org.fallguys.procurementservice.domain.model.UserRole;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,8 +34,14 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final LoadWarehousePort loadWarehousePort;
     private final InboundStockPort inboundStockPort;
+    private final SyncInboundStockPort syncInboundStockPort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final PendingStatusChangePort pendingStatusChangePort;
+    private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+
+    // 재고 입고 처리 방식. true=동기 REST(부하 테스트용), false=outbox 기반 async(기본).
+    @Value("${stock.sync-mode}")
+    private boolean stockSyncMode;
 
     /**
      * 발주서를 전량 입고 처리한다.
@@ -70,17 +79,32 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
 
         order.receive();
 
-        inboundStockPort.inbound(order, new Executor(command.userCode(), command.userName()));
-
         PurchaseOrder saved = savePurchaseOrderPort.save(order);
 
-        pendingStatusChangePort.save(new PendingStatusChange(
+        PendingStatusChange pending = new PendingStatusChange(
                 saved.getCode(),
                 PurchaseOrderStatus.RECEIVED,
                 new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 new ReceivingPayload(command.receivedDate()),
                 Instant.now()
-        ));
+        );
+
+        if (stockSyncMode) {
+            // sync 경로(부하 테스트): 같은 트랜잭션 안에서 재고 입고를 동기 REST로 호출한다.
+            // 실패 시 예외가 전파돼 상태 전환까지 전부 롤백된다(provisional 미잔존).
+            // 성공하면 reply를 기다리지 않고 즉시 saga를 DONE으로 확정하고 이력을 기록한다
+            // (CompleteSagaService와 동일한 확정 로직을 인라인으로 수행).
+            syncInboundStockPort.inbound(saved);
+            saved.markSagaProcessing();
+            saved.markSagaDone();
+            savePurchaseOrderPort.save(saved);
+            savePurchaseOrderStatusHistoryPort.append(pending.toHistory());
+        } else {
+            // async 경로(기본): 입고 saga가 DONE으로 확정돼야 이력에 남는다. 지금은 행위자·수령
+            // 부가 데이터를 staging에만 보관하고, reply 성공 수신 시 이력으로 승격한다(실패 시 폐기).
+            inboundStockPort.inbound(saved, new Executor(command.userCode(), command.userName()));
+            pendingStatusChangePort.save(pending);
+        }
 
         return saved;
     }

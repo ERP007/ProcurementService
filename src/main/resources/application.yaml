@@ -1,3 +1,7 @@
+# 재고 입고 처리 방식. true=동기 REST(부하 테스트용), false=outbox 기반 async(기본).
+stock:
+  sync-mode: ${STOCK_SYNC_MODE:false}
+
 client:
   inventory:
     base-url: ${INVENTORY_SERVICE_URL:http://inventory-service:8080}

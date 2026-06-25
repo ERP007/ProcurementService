@@ -14,6 +14,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * async 입고 어댑터: outbox 기반(기본). 동기 REST 방식은
+ * {@link org.fallguys.procurementservice.adapter.outbound.client.StockInboundRestAdapter} 참고.
+ * 어느 경로를 쓸지는 서비스가 {@code stock.sync-mode} 플래그로 분기한다.
+ */
 @Component
 @RequiredArgsConstructor
 public class StockInboundMessagingAdapter implements InboundStockPort {
