@@ -10,11 +10,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -49,37 +46,36 @@ class GetPurchaseOrderKpiServiceTest {
 
     @Test
     void ADMIN_역할이면_KPI_반환() {
-        PurchaseOrderKpi kpi = new PurchaseOrderKpi(128, 3, 12, 4);
-        given(loadPurchaseOrderKpiPort.loadKpi(any(LocalDate.class))).willReturn(kpi);
+        PurchaseOrderKpi kpi = new PurchaseOrderKpi(128, 3, 12);
+        given(loadPurchaseOrderKpiPort.loadKpi()).willReturn(kpi);
 
         PurchaseOrderKpi result = service.getKpi(UserRole.ADMIN);
 
         assertThat(result.totalCount()).isEqualTo(128);
         assertThat(result.draftCount()).isEqualTo(3);
         assertThat(result.approvedCount()).isEqualTo(12);
-        assertThat(result.delayedCount()).isEqualTo(4);
-        verify(loadPurchaseOrderKpiPort).loadKpi(any(LocalDate.class));
+        verify(loadPurchaseOrderKpiPort).loadKpi();
     }
 
     @Test
     void HQ_MANAGER_역할이면_KPI_반환() {
-        PurchaseOrderKpi kpi = new PurchaseOrderKpi(50, 1, 5, 0);
-        given(loadPurchaseOrderKpiPort.loadKpi(any(LocalDate.class))).willReturn(kpi);
+        PurchaseOrderKpi kpi = new PurchaseOrderKpi(50, 1, 5);
+        given(loadPurchaseOrderKpiPort.loadKpi()).willReturn(kpi);
 
         PurchaseOrderKpi result = service.getKpi(UserRole.HQ_MANAGER);
 
         assertThat(result.totalCount()).isEqualTo(50);
-        verify(loadPurchaseOrderKpiPort).loadKpi(any(LocalDate.class));
+        verify(loadPurchaseOrderKpiPort).loadKpi();
     }
 
     @Test
     void HQ_STAFF_역할이면_KPI_반환() {
-        PurchaseOrderKpi kpi = new PurchaseOrderKpi(10, 0, 3, 1);
-        given(loadPurchaseOrderKpiPort.loadKpi(any(LocalDate.class))).willReturn(kpi);
+        PurchaseOrderKpi kpi = new PurchaseOrderKpi(10, 0, 3);
+        given(loadPurchaseOrderKpiPort.loadKpi()).willReturn(kpi);
 
         PurchaseOrderKpi result = service.getKpi(UserRole.HQ_STAFF);
 
         assertThat(result.totalCount()).isEqualTo(10);
-        verify(loadPurchaseOrderKpiPort).loadKpi(any(LocalDate.class));
+        verify(loadPurchaseOrderKpiPort).loadKpi();
     }
 }

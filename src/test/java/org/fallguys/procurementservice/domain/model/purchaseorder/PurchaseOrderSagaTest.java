@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,9 +15,11 @@ class PurchaseOrderSagaTest {
 
     private PurchaseOrder orderWith(PurchaseOrderStatus status) {
         return new PurchaseOrder(
-                "PO-2026-05-0001", "VD-01", "WD-01",
+                "PO-2026-05-0001",
+                VendorRef.snapshot("VD-01", "벤더"),
+                WarehouseRef.snapshot("WD-01", "창고"),
                 status,
-                LocalDate.of(2026, 5, 24), null,
+                null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
                 new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-01T09:00:00Z"))
@@ -99,7 +100,7 @@ class PurchaseOrderSagaTest {
         order.receive();
         order.markSagaProcessing();
 
-        order.compensateInbound();
+        order.compensateInbound("재고 부족");
 
         assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
         assertThat(order.getSagaStatus()).isEqualTo(SagaStatus.FAILED);
@@ -109,7 +110,7 @@ class PurchaseOrderSagaTest {
     void compensateInbound_RECEIVED_아니면_예외() {
         PurchaseOrder order = orderWith(PurchaseOrderStatus.APPROVED);
 
-        assertThatThrownBy(order::compensateInbound)
+        assertThatThrownBy(() -> order.compensateInbound("재고 부족"))
                 .isInstanceOf(BusinessValidationException.class)
                 .hasFieldOrPropertyWithValue("code", "PO-024");
     }

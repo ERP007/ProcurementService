@@ -3,6 +3,7 @@ package org.fallguys.procurementservice.application.service;
 import org.fallguys.procurementservice.application.port.inbound.command.CreatePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.command.PurchaseOrderLineCommand;
 import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
+import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.application.port.outbound.port.*;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
@@ -23,7 +24,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,10 +42,12 @@ class CreatePurchaseOrderServiceTest {
 
     @Mock private LoadVendorPort loadVendorPort;
     @Mock private LoadWarehousePort loadWarehousePort;
+    @Mock private LoadWarehouseInfoPort loadWarehouseInfoPort;
     @Mock private LoadItemPort loadItemPort;
     @Mock private GeneratePoCodePort generatePoCodePort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
     @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    @Mock private PublishUserActivityPort publishUserActivityPort;
 
     @InjectMocks
     private CreatePurchaseOrderService service;
@@ -73,26 +75,6 @@ class CreatePurchaseOrderServiceTest {
                 .isInstanceOf(ForbiddenException.class);
 
         verifyNoInteractions(loadVendorPort, loadWarehousePort, loadItemPort, generatePoCodePort, savePurchaseOrderPort);
-    }
-
-    // ── 도착 희망일 검증 ───────────────────────────────────────────────────
-
-    @Test
-    void 도착희망일이_1년_초과이면_BusinessValidationException_발생() {
-        assertThatThrownBy(() -> service.create(UserRole.ADMIN, commandWithDate(LocalDate.now().plusYears(1).plusDays(1))))
-                .isInstanceOf(BusinessValidationException.class);
-
-        verifyNoInteractions(loadVendorPort, loadWarehousePort, loadItemPort, generatePoCodePort, savePurchaseOrderPort);
-    }
-
-    @Test
-    void 도착희망일이_정확히_1년이면_통과() {
-        given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
-        willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
-        given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
-        given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
-
-        assertThat(service.create(UserRole.ADMIN, commandWithDate(LocalDate.now().plusYears(1)))).isNotNull();
     }
 
     // ── 중복 품목 검증 ─────────────────────────────────────────────────────
@@ -186,7 +168,7 @@ class CreatePurchaseOrderServiceTest {
         PurchaseOrderStatusHistory history = historyCaptor.getValue();
         assertThat(history.poCode()).isEqualTo("PO-2026-06-0001");
         assertThat(history.status()).isEqualTo(PurchaseOrderStatus.DRAFT);
-        assertThat(history.actorCode()).isEqualTo("EMP-001");
+        assertThat(history.actor().code()).isEqualTo("EMP-001");
         assertThat(history.payload()).isNull();
     }
 
@@ -215,6 +197,7 @@ class CreatePurchaseOrderServiceTest {
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
+        given(loadWarehouseInfoPort.findByCode("HQ-SE-01")).willReturn(new WarehouseInfo("HQ-SE-01", "서울창고"));
         given(loadItemPort.loadAll(List.of("SKU-001"))).willReturn(Map.of("SKU-001", itemInfo));
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -235,6 +218,7 @@ class CreatePurchaseOrderServiceTest {
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
         given(generatePoCodePort.generate()).willReturn("PO-2026-06-0001");
+        given(loadWarehouseInfoPort.findByCode("HQ-SE-01")).willReturn(new WarehouseInfo("HQ-SE-01", "서울창고"));
         given(loadItemPort.loadAll(List.of("SKU-001"))).willReturn(Map.of("SKU-001", itemInfo));
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -247,7 +231,7 @@ class CreatePurchaseOrderServiceTest {
         PurchaseOrderStatusHistory history = historyCaptor.getValue();
         assertThat(history.poCode()).isEqualTo("PO-2026-06-0001");
         assertThat(history.status()).isEqualTo(PurchaseOrderStatus.APPROVED);
-        assertThat(history.actorCode()).isEqualTo("EMP-001");
+        assertThat(history.actor().code()).isEqualTo("EMP-001");
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────
@@ -258,24 +242,17 @@ class CreatePurchaseOrderServiceTest {
 
     private CreatePurchaseOrderCommand draftCommandWithLines(List<PurchaseOrderLineCommand> lines) {
         return new CreatePurchaseOrderCommand(
-                "EMP-001", "VD-001", "HQ-SE-01",
-                LocalDate.now().plusDays(7), "정기 발주 건", lines,
+                "EMP-001", "홍길동", "사원", "VD-001", "HQ-SE-01",
+                "정기 발주 건", lines,
                 PurchaseOrderStatus.DRAFT
         );
     }
 
     private CreatePurchaseOrderCommand approvedCommandWithLines(List<PurchaseOrderLineCommand> lines) {
         return new CreatePurchaseOrderCommand(
-                "EMP-001", "VD-001", "HQ-SE-01",
-                LocalDate.now().plusDays(7), "정기 발주 건", lines,
+                "EMP-001", "홍길동", "사원", "VD-001", "HQ-SE-01",
+                "정기 발주 건", lines,
                 PurchaseOrderStatus.APPROVED
-        );
-    }
-
-    private CreatePurchaseOrderCommand commandWithDate(LocalDate date) {
-        return new CreatePurchaseOrderCommand(
-                "EMP-001", "VD-001", "HQ-SE-01", date, null, List.of(),
-                PurchaseOrderStatus.DRAFT
         );
     }
 }

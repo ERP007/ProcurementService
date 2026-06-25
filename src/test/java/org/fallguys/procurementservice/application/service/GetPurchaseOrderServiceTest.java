@@ -3,10 +3,8 @@ package org.fallguys.procurementservice.application.service;
 import org.fallguys.procurementservice.application.port.inbound.model.GetPurchaseOrderResult;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderStatusHistoriesPort;
-import org.fallguys.procurementservice.application.port.outbound.port.LoadUserPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
-import org.fallguys.procurementservice.application.port.outbound.model.UserInfo;
 import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
@@ -14,6 +12,9 @@ import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ActorRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.fallguys.procurementservice.domain.model.vendor.Vendor;
@@ -26,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,7 +42,6 @@ class GetPurchaseOrderServiceTest {
     @Mock private LoadPurchaseOrderStatusHistoriesPort loadPurchaseOrderStatusHistoriesPort;
     @Mock private LoadVendorPort loadVendorPort;
     @Mock private LoadWarehouseInfoPort loadWarehouseInfoPort;
-    @Mock private LoadUserPort loadUserPort;
 
     @InjectMocks
     private GetPurchaseOrderService service;
@@ -51,25 +50,30 @@ class GetPurchaseOrderServiceTest {
     private PurchaseOrder draftPo;
     private Vendor vendor;
     private WarehouseInfo warehouseInfo;
-    private UserInfo userInfo;
 
     @BeforeEach
     void setUp() {
         ProcurementOrderCreation creation = new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-18T07:45:00Z"));
 
+        // 확정 건은 공급사·창고명이 박제(snapshot)되어 외부 조회 없이 그대로 표시된다.
         approvedPo = new PurchaseOrder(
-                "PO-2026-05-0001", "VD-01", "WD-01",
+                "PO-2026-05-0001",
+                VendorRef.snapshot("VD-01", "㈜동성정밀"),
+                WarehouseRef.snapshot("WD-01", "본사 중앙창고"),
                 PurchaseOrderStatus.APPROVED,
-                LocalDate.of(2026, 5, 24), null,
+                null,
                 List.of(),
                 Money.of(BigDecimal.valueOf(14820000)),
                 creation
         );
 
+        // DRAFT는 미확정 → code만 보관, 조회 시 master를 live로 채운다.
         draftPo = new PurchaseOrder(
-                "PO-2026-05-0002", "VD-01", "WD-01",
+                "PO-2026-05-0002",
+                VendorRef.codeOnly("VD-01"),
+                WarehouseRef.codeOnly("WD-01"),
                 PurchaseOrderStatus.DRAFT,
-                LocalDate.of(2026, 5, 24), null,
+                null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
                 creation
@@ -77,7 +81,6 @@ class GetPurchaseOrderServiceTest {
 
         vendor = new Vendor("VD-01", "㈜동성정밀", "홍길동", "010-0000-0000", "서울시", true);
         warehouseInfo = new WarehouseInfo("WD-01", "본사 중앙창고");
-        userInfo = new UserInfo("EMP-002", "이영희", "과장");
     }
 
     // ── 역할 검증 ──────────────────────────────────────────────────────────
@@ -87,7 +90,7 @@ class GetPurchaseOrderServiceTest {
         assertThatThrownBy(() -> service.get(UserRole.BRANCH_MANAGER, "PO-2026-05-0001"))
                 .isInstanceOf(ForbiddenException.class);
 
-        verifyNoInteractions(loadPurchaseOrderPort, loadVendorPort, loadWarehouseInfoPort, loadUserPort);
+        verifyNoInteractions(loadPurchaseOrderPort, loadVendorPort, loadWarehouseInfoPort);
     }
 
     @Test
@@ -95,7 +98,7 @@ class GetPurchaseOrderServiceTest {
         assertThatThrownBy(() -> service.get(UserRole.BRANCH_STAFF, "PO-2026-05-0001"))
                 .isInstanceOf(ForbiddenException.class);
 
-        verifyNoInteractions(loadPurchaseOrderPort, loadVendorPort, loadWarehouseInfoPort, loadUserPort);
+        verifyNoInteractions(loadPurchaseOrderPort, loadVendorPort, loadWarehouseInfoPort);
     }
 
     // ── 발주서 조회 ────────────────────────────────────────────────────────
@@ -107,26 +110,26 @@ class GetPurchaseOrderServiceTest {
         assertThatThrownBy(() -> service.get(UserRole.ADMIN, "PO-2026-05-0001"))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(loadVendorPort, loadWarehouseInfoPort, loadUserPort);
+        verifyNoInteractions(loadVendorPort, loadWarehouseInfoPort);
     }
 
-    // ── 공급사 조회 ────────────────────────────────────────────────────────
+    // ── 공급사 조회 (DRAFT는 master live 조회) ──────────────────────────────
 
     @Test
-    void 공급사_미존재이면_ResourceNotFoundException_발생() {
-        given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
+    void DRAFT_공급사_미존재이면_ResourceNotFoundException_발생() {
+        given(loadPurchaseOrderPort.findByCode("PO-2026-05-0002")).willReturn(Optional.of(draftPo));
         given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.get(UserRole.ADMIN, "PO-2026-05-0001"))
+        assertThatThrownBy(() -> service.get(UserRole.ADMIN, "PO-2026-05-0002"))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(loadWarehouseInfoPort, loadUserPort);
+        verifyNoInteractions(loadWarehouseInfoPort);
     }
 
     // ── 성공 ───────────────────────────────────────────────────────────────
 
     @Test
-    void DRAFT_발주서_조회_성공_approvedByUser_null() {
+    void DRAFT_발주서_조회_성공_approvedBy_null() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0002")).willReturn(Optional.of(draftPo));
         given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.of(vendor));
         given(loadWarehouseInfoPort.findByCode("WD-01")).willReturn(warehouseInfo);
@@ -134,45 +137,40 @@ class GetPurchaseOrderServiceTest {
         GetPurchaseOrderResult result = service.get(UserRole.HQ_STAFF, "PO-2026-05-0002");
 
         assertThat(result.order().getCode()).isEqualTo("PO-2026-05-0002");
-        assertThat(result.vendor().getCode()).isEqualTo("VD-01");
-        assertThat(result.warehouse().name()).isEqualTo("본사 중앙창고");
-        assertThat(result.approvedByUser()).isNull();
-
-        verifyNoInteractions(loadUserPort);
+        assertThat(result.vendorCode()).isEqualTo("VD-01");
+        assertThat(result.vendorName()).isEqualTo("㈜동성정밀");
+        assertThat(result.warehouseName()).isEqualTo("본사 중앙창고");
+        // APPROVED 이력이 없으므로 승인자는 null.
+        assertThat(result.approvedBy()).isNull();
     }
 
     @Test
-    void 승인된_발주서_조회_성공_유저_정보_포함() {
+    void 승인된_발주서_조회_성공_승인자는_이력_박제값() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
-        given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.of(vendor));
-        given(loadWarehouseInfoPort.findByCode("WD-01")).willReturn(warehouseInfo);
         given(loadPurchaseOrderStatusHistoriesPort.findByPoCode("PO-2026-05-0001")).willReturn(List.of(
-                new PurchaseOrderStatusHistory("PO-2026-05-0001", PurchaseOrderStatus.APPROVED, "EMP-002", null,
+                new PurchaseOrderStatusHistory("PO-2026-05-0001", PurchaseOrderStatus.APPROVED,
+                        new ActorRef("EMP-002", "이영희", "과장"), null,
                         Instant.parse("2026-05-18T09:00:00Z"))
         ));
-        given(loadUserPort.findByCode("EMP-002")).willReturn(Optional.of(userInfo));
 
         GetPurchaseOrderResult result = service.get(UserRole.HQ_MANAGER, "PO-2026-05-0001");
 
+        // 확정 건은 공급사·창고명을 박제 snapshot으로 쓰므로 master를 조회하지 않는다.
         assertThat(result.order().getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
-        assertThat(result.approvedByUser().code()).isEqualTo("EMP-002");
-        assertThat(result.approvedByUser().name()).isEqualTo("이영희");
-        assertThat(result.approvedByUser().position()).isEqualTo("과장");
+        assertThat(result.vendorName()).isEqualTo("㈜동성정밀");
+        assertThat(result.warehouseName()).isEqualTo("본사 중앙창고");
+        assertThat(result.approvedBy().code()).isEqualTo("EMP-002");
+        assertThat(result.approvedBy().name()).isEqualTo("이영희");
+        assertThat(result.approvedBy().position()).isEqualTo("과장");
     }
 
     @Test
-    void 승인된_발주서_조회_유저_미존재이면_approvedByUser_null() {
+    void 승인된_발주서_APPROVED_이력_없으면_approvedBy_null() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
-        given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.of(vendor));
-        given(loadWarehouseInfoPort.findByCode("WD-01")).willReturn(warehouseInfo);
-        given(loadPurchaseOrderStatusHistoriesPort.findByPoCode("PO-2026-05-0001")).willReturn(List.of(
-                new PurchaseOrderStatusHistory("PO-2026-05-0001", PurchaseOrderStatus.APPROVED, "EMP-002", null,
-                        Instant.parse("2026-05-18T09:00:00Z"))
-        ));
-        given(loadUserPort.findByCode("EMP-002")).willReturn(Optional.empty());
+        given(loadPurchaseOrderStatusHistoriesPort.findByPoCode("PO-2026-05-0001")).willReturn(List.of());
 
         GetPurchaseOrderResult result = service.get(UserRole.ADMIN, "PO-2026-05-0001");
 
-        assertThat(result.approvedByUser()).isNull();
+        assertThat(result.approvedBy()).isNull();
     }
 }

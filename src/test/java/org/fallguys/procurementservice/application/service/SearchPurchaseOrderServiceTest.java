@@ -85,7 +85,7 @@ class SearchPurchaseOrderServiceTest {
         LocalDate start = LocalDate.of(2025, 6, 2);
         LocalDate end = LocalDate.of(2026, 6, 2);
         SearchPurchaseOrderQuery q = queryWithDates(start, end);
-        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 0);
+        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 0, 0);
         given(searchPurchaseOrderPort.search(q)).willReturn(expected);
 
         PurchaseOrderPage result = service.search(UserRole.ADMIN, q);
@@ -98,7 +98,7 @@ class SearchPurchaseOrderServiceTest {
     @Test
     void ADMIN_역할_정상_조회() {
         SearchPurchaseOrderQuery q = query();
-        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 0);
+        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 0, 0);
         given(searchPurchaseOrderPort.search(q)).willReturn(expected);
 
         PurchaseOrderPage result = service.search(UserRole.ADMIN, q);
@@ -109,7 +109,7 @@ class SearchPurchaseOrderServiceTest {
 
     @Test
     void HQ_MANAGER_역할_정상_조회() {
-        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 42);
+        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 42, 3);
         given(searchPurchaseOrderPort.search(query())).willReturn(expected);
 
         PurchaseOrderPage result = service.search(UserRole.HQ_MANAGER, query());
@@ -119,7 +119,7 @@ class SearchPurchaseOrderServiceTest {
 
     @Test
     void HQ_STAFF_역할_정상_조회() {
-        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 0);
+        PurchaseOrderPage expected = new PurchaseOrderPage(List.of(), 1, 20, 0, 0);
         given(searchPurchaseOrderPort.search(query())).willReturn(expected);
 
         service.search(UserRole.HQ_STAFF, query());

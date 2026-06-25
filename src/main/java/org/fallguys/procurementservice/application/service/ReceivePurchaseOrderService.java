@@ -83,10 +83,8 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
 
         order.receive();
 
-        PurchaseOrder saved = savePurchaseOrderPort.save(order);
-
         PendingStatusChange pending = new PendingStatusChange(
-                saved.getCode(),
+                order.getCode(),
                 PurchaseOrderStatus.RECEIVED,
                 new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 new ReceivingPayload(command.receivedDate()),
@@ -98,22 +96,25 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
             // 실패 시 예외가 전파돼 상태 전환까지 전부 롤백된다(provisional 미잔존).
             // 성공하면 reply를 기다리지 않고 즉시 saga를 DONE으로 확정하고 이력을 기록한다
             // (CompleteSagaService와 동일한 확정 로직을 인라인으로 수행).
-            syncInboundStockPort.inbound(saved);
-            saved.markSagaProcessing();
-            saved.markSagaDone();
-            savePurchaseOrderPort.save(saved);
+            syncInboundStockPort.inbound(order);
+            order.markSagaProcessing();
+            order.markSagaDone();
+            PurchaseOrder saved = savePurchaseOrderPort.save(order);
             savePurchaseOrderStatusHistoryPort.append(pending.toHistory());
 
             // 사용자 활동: 입고 확정은 sync 경로에서 즉시 발생. async는 CompleteSagaService가 발행한다.
             publishUserActivityPort.publish(new UserActivity(
                     command.userCode(), UserActivityType.RECEIVED,
                     saved.getCode(), saved.getVendor().nameSnapshot(), pending.occurredAt()));
-        } else {
-            // async 경로(기본): 입고 saga가 DONE으로 확정돼야 이력에 남는다. 지금은 행위자·수령
-            // 부가 데이터를 staging에만 보관하고, reply 성공 수신 시 이력으로 승격한다(실패 시 폐기).
-            inboundStockPort.inbound(saved, new Executor(command.userCode(), command.userName()));
-            pendingStatusChangePort.save(pending);
+            return saved;
         }
+
+        // async 경로(기본): 입고 saga가 DONE으로 확정돼야 이력에 남는다. 지금은 행위자·수령
+        // 부가 데이터를 staging에만 보관하고, reply 성공 수신 시 이력으로 승격한다(실패 시 폐기).
+        // 재고 호출이 실패하면 예외가 전파돼 save·staging이 모두 일어나지 않는다.
+        inboundStockPort.inbound(order, new Executor(command.userCode(), command.userName()));
+        PurchaseOrder saved = savePurchaseOrderPort.save(order);
+        pendingStatusChangePort.save(pending);
 
         return saved;
     }

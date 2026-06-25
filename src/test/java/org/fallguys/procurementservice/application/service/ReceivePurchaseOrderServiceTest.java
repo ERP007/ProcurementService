@@ -4,8 +4,11 @@ import org.fallguys.procurementservice.application.port.inbound.command.ReceiveP
 import org.fallguys.procurementservice.application.port.outbound.port.InboundStockPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PendingStatusChangePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SyncInboundStockPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
@@ -13,7 +16,9 @@ import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
-import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
+import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PendingStatusChange;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.ReceivingPayload;
 import org.fallguys.procurementservice.domain.model.UserRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,8 +49,11 @@ class ReceivePurchaseOrderServiceTest {
     @Mock private LoadPurchaseOrderPort loadPurchaseOrderPort;
     @Mock private LoadWarehousePort loadWarehousePort;
     @Mock private InboundStockPort inboundStockPort;
+    @Mock private SyncInboundStockPort syncInboundStockPort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
     @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    @Mock private PendingStatusChangePort pendingStatusChangePort;
+    @Mock private PublishUserActivityPort publishUserActivityPort;
 
     @InjectMocks
     private ReceivePurchaseOrderService service;
@@ -58,18 +66,22 @@ class ReceivePurchaseOrderServiceTest {
         ProcurementOrderCreation creation = new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-01T09:00:00Z"));
 
         approvedPo = new PurchaseOrder(
-                "PO-2026-05-0001", "VD-01", "WD-01",
+                "PO-2026-05-0001",
+                VendorRef.snapshot("VD-01", "벤더"),
+                WarehouseRef.snapshot("WD-01", "창고"),
                 PurchaseOrderStatus.APPROVED,
-                LocalDate.of(2026, 5, 24), null,
+                null,
                 List.of(),
                 Money.of(BigDecimal.valueOf(6000000)),
                 creation
         );
 
         draftPo = new PurchaseOrder(
-                "PO-2026-05-0001", "VD-01", "WD-01",
+                "PO-2026-05-0001",
+                VendorRef.snapshot("VD-01", "벤더"),
+                WarehouseRef.snapshot("WD-01", "창고"),
                 PurchaseOrderStatus.DRAFT,
-                LocalDate.of(2026, 5, 24), null,
+                null,
                 List.of(),
                 Money.of(BigDecimal.ZERO),
                 creation
@@ -144,14 +156,16 @@ class ReceivePurchaseOrderServiceTest {
 
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.RECEIVED);
 
-        ArgumentCaptor<PurchaseOrderStatusHistory> historyCaptor =
-                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
-        verify(savePurchaseOrderStatusHistoryPort).append(historyCaptor.capture());
+        // async(기본) 경로: RECEIVED는 saga로 보상될 수 있는 provisional 상태라 이력에 즉시 박지 않고
+        // staging(PendingStatusChange)에 보관한다. CompleteSagaService가 reply 성공 시 이력으로 승격한다.
+        ArgumentCaptor<PendingStatusChange> pendingCaptor =
+                ArgumentCaptor.forClass(PendingStatusChange.class);
+        verify(pendingStatusChangePort).save(pendingCaptor.capture());
 
-        PurchaseOrderStatusHistory history = historyCaptor.getValue();
-        assertThat(history.status()).isEqualTo(PurchaseOrderStatus.RECEIVED);
-        assertThat(history.actorCode()).isEqualTo("EMP-001");
-        assertThat(history.payload()).isEqualTo(new ReceivingPayload(LocalDate.of(2026, 5, 24)));
+        PendingStatusChange pending = pendingCaptor.getValue();
+        assertThat(pending.status()).isEqualTo(PurchaseOrderStatus.RECEIVED);
+        assertThat(pending.actor().code()).isEqualTo("EMP-001");
+        assertThat(pending.payload()).isEqualTo(new ReceivingPayload(LocalDate.of(2026, 5, 24)));
     }
 
     @Test
@@ -182,6 +196,6 @@ class ReceivePurchaseOrderServiceTest {
     // ── 픽스처 ────────────────────────────────────────────────────────────
 
     private ReceivePurchaseOrderCommand command() {
-        return new ReceivePurchaseOrderCommand("PO-2026-05-0001", "EMP-001", "홍길동", LocalDate.of(2026, 5, 24));
+        return new ReceivePurchaseOrderCommand("PO-2026-05-0001", "EMP-001", "홍길동", "사원", LocalDate.of(2026, 5, 24));
     }
 }

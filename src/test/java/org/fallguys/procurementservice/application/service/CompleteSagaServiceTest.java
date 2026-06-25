@@ -1,13 +1,18 @@
 package org.fallguys.procurementservice.application.service;
 
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.PendingStatusChangePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -17,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +37,9 @@ class CompleteSagaServiceTest {
 
     @Mock private LoadPurchaseOrderPort loadPurchaseOrderPort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
+    @Mock private PendingStatusChangePort pendingStatusChangePort;
+    @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    @Mock private PublishUserActivityPort publishUserActivityPort;
 
     @InjectMocks
     private CompleteSagaService service;
@@ -41,11 +48,13 @@ class CompleteSagaServiceTest {
 
     private PurchaseOrder order(PurchaseOrderStatus status, SagaStatus saga) {
         return new PurchaseOrder(
-                CODE, "VD-01", "WD-01", status,
-                LocalDate.of(2026, 5, 24), null, List.of(),
+                CODE,
+                VendorRef.snapshot("VD-01", "벤더"),
+                WarehouseRef.snapshot("WD-01", "창고"),
+                status, null, List.of(),
                 Money.of(BigDecimal.ZERO),
                 new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-01T09:00:00Z")),
-                saga
+                saga, null
         );
     }
 
