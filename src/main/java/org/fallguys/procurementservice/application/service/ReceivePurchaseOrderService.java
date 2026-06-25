@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.command.ReceivePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.usecase.ReceivePurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.outbound.model.Executor;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivityType;
 import org.fallguys.procurementservice.application.port.outbound.port.InboundStockPort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
 import org.fallguys.procurementservice.application.port.outbound.port.PendingStatusChangePort;
@@ -38,6 +41,7 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final PendingStatusChangePort pendingStatusChangePort;
     private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    private final PublishUserActivityPort publishUserActivityPort;
 
     // 재고 입고 처리 방식. true=동기 REST(부하 테스트용), false=outbox 기반 async(기본).
     @Value("${stock.sync-mode}")
@@ -99,6 +103,11 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
             saved.markSagaDone();
             savePurchaseOrderPort.save(saved);
             savePurchaseOrderStatusHistoryPort.append(pending.toHistory());
+
+            // 사용자 활동: 입고 확정은 sync 경로에서 즉시 발생. async는 CompleteSagaService가 발행한다.
+            publishUserActivityPort.publish(new UserActivity(
+                    command.userCode(), UserActivityType.RECEIVED,
+                    saved.getCode(), saved.getVendor().nameSnapshot(), pending.occurredAt()));
         } else {
             // async 경로(기본): 입고 saga가 DONE으로 확정돼야 이력에 남는다. 지금은 행위자·수령
             // 부가 데이터를 staging에만 보관하고, reply 성공 수신 시 이력으로 승격한다(실패 시 폐기).

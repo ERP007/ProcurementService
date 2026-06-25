@@ -34,4 +34,17 @@ public record BaseEvent<T>(
                 payload
         );
     }
+
+    // 발생 시각을 명시 지정한다(payload.occurredAt과 envelope.occurredAt을 일치시킬 때).
+    public static <T> BaseEvent<T> of(EventType eventType, String correlationId, Instant occurredAt, T payload) {
+        return new BaseEvent<>(
+                UUID.randomUUID(),
+                eventType.getWire(),
+                EVENT_VERSION,
+                PRODUCER,
+                occurredAt,
+                correlationId,
+                payload
+        );
+    }
 }

@@ -10,8 +10,11 @@ import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPo
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivityType;
 import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.*;
 import org.fallguys.procurementservice.domain.model.*;
@@ -43,6 +46,7 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
     private final GeneratePoCodePort generatePoCodePort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    private final PublishUserActivityPort publishUserActivityPort;
 
     /**
      * 발주를 생성한다. (DRAFT: 임시 저장 / APPROVED: 즉시 승인)
@@ -115,6 +119,11 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 saved.getCode(), command.status(),
                 new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 null, now));
+
+        // 사용자 활동: 즉시 APPROVED 생성도 생성 1건으로 본다. 공급사명은 확정(APPROVED) 시에만 박제값 존재.
+        publishUserActivityPort.publish(new UserActivity(
+                command.userCode(), UserActivityType.CREATED,
+                saved.getCode(), isApproved ? vendor.getName() : null, now));
 
         return saved;
     }

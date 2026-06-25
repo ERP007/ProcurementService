@@ -11,7 +11,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum EventType {
 
-    INBOUND_STOCK_REQUESTED("inventory.stock.inbound.requested.procurement");
+    INBOUND_STOCK_REQUESTED("inventory.stock.inbound.requested.procurement"),
+
+    // user 서비스 활동 이력 수신용. erp.events로 비동기 발행(유실 가능).
+    USER_ACTIVITY_OCCURRED("user.activity.occurred");
 
     private final String wire;
 }

@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.command.CancelPurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.usecase.CancelPurchaseOrderUseCase;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivityType;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
@@ -35,6 +38,7 @@ public class CancelPurchaseOrderService implements CancelPurchaseOrderUseCase {
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    private final PublishUserActivityPort publishUserActivityPort;
 
     /**
      * 발주서를 취소한다.
@@ -66,13 +70,19 @@ public class CancelPurchaseOrderService implements CancelPurchaseOrderUseCase {
 
         PurchaseOrder saved = savePurchaseOrderPort.save(order);
 
+        Instant now = Instant.now();
         savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
                 saved.getCode(),
                 PurchaseOrderStatus.CANCELED,
                 new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 new CancellationPayload(command.reason()),
-                Instant.now()
+                now
         ));
+
+        // 사용자 활동: 공급사명 박제값(APPROVED 거친 경우)이 있으면 content로, DRAFT 취소면 null.
+        publishUserActivityPort.publish(new UserActivity(
+                command.userCode(), UserActivityType.CANCELED,
+                saved.getCode(), saved.getVendor().nameSnapshot(), now));
 
         return saved;
     }
