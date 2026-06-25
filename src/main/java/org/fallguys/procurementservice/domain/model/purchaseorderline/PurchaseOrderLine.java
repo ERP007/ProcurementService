@@ -17,4 +17,10 @@ public class PurchaseOrderLine {
     public Money lineAmount() {
         return unitPrice.multiply(orderQuantity);
     }
+
+    // DRAFT는 라인 스냅샷이 비어 있어 조회 시 live 품목값으로 채운다(영속화 X, 표시 용도).
+    public void enrichSnapshot(String itemName, String unit) {
+        this.itemNameSnapshot = itemName;
+        this.unitSnapshot = unit;
+    }
 }

@@ -29,6 +29,7 @@ public record PurchaseOrderDetailResponse(
 
         PersonInfo approvedBy = PersonInfo.from(result.approvedBy());
 
+        // DRAFT 라인은 서비스에서 live 값으로 채워졌고, 확정 건은 박제 snapshot. 둘 다 라인 스냅샷에서 읽는다.
         List<LineInfo> lines = order.getLines().stream()
                 .map(l -> new LineInfo(
                         l.getId(),
@@ -42,8 +43,8 @@ public record PurchaseOrderDetailResponse(
 
         return new PurchaseOrderDetailResponse(
                 order.getCode(),
-                new VendorInfo(result.vendorCode(), result.vendorName()),
-                new WarehouseInfo(result.warehouseCode(), result.warehouseName()),
+                new VendorInfo(order.getVendor().code(), order.getVendor().nameSnapshot()),
+                new WarehouseInfo(order.getWarehouse().code(), order.getWarehouse().nameSnapshot()),
                 approvedBy,
                 order.getCreation().createdAt(),
                 order.getMemo(),

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -32,6 +33,12 @@ public class PurchaseOrderStatusHistoryPersistenceAdapter
         return jpaDao.findByPoCodeOrderByCreatedAtDesc(poCode).stream()
                 .map(entity -> entity.toDomain(deserialize(entity.getStatus(), entity.getPayload())))
                 .toList();
+    }
+
+    @Override
+    public Optional<PurchaseOrderStatusHistory> findLatestByPoCodeAndStatus(String poCode, PurchaseOrderStatus status) {
+        return jpaDao.findFirstByPoCodeAndStatusOrderByCreatedAtDesc(poCode, status)
+                .map(entity -> entity.toDomain(deserialize(entity.getStatus(), entity.getPayload())));
     }
 
     // payload 도메인 → JSON 문자열. 부가 데이터가 없는 전이는 null.

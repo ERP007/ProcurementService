@@ -3,9 +3,12 @@ package org.fallguys.procurementservice.application.service;
 import org.fallguys.procurementservice.application.port.inbound.model.GetPurchaseOrderResult;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderStatusHistoriesPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
+import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
 import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
+import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.Money;
@@ -28,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,6 +46,7 @@ class GetPurchaseOrderServiceTest {
     @Mock private LoadPurchaseOrderStatusHistoriesPort loadPurchaseOrderStatusHistoriesPort;
     @Mock private LoadVendorPort loadVendorPort;
     @Mock private LoadWarehouseInfoPort loadWarehouseInfoPort;
+    @Mock private LoadItemPort loadItemPort;
 
     @InjectMocks
     private GetPurchaseOrderService service;
@@ -116,14 +121,15 @@ class GetPurchaseOrderServiceTest {
     // ── 공급사 조회 (DRAFT는 master live 조회) ──────────────────────────────
 
     @Test
-    void DRAFT_공급사_미존재이면_ResourceNotFoundException_발생() {
+    void DRAFT_공급사_미존재이면_공급사명은_null() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0002")).willReturn(Optional.of(draftPo));
         given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.empty());
+        given(loadWarehouseInfoPort.findByCode("WD-01")).willReturn(warehouseInfo);
 
-        assertThatThrownBy(() -> service.get(UserRole.ADMIN, "PO-2026-05-0002"))
-                .isInstanceOf(ResourceNotFoundException.class);
+        GetPurchaseOrderResult result = service.get(UserRole.ADMIN, "PO-2026-05-0002");
 
-        verifyNoInteractions(loadWarehouseInfoPort);
+        assertThat(result.order().getVendor().code()).isEqualTo("VD-01");
+        assertThat(result.order().getVendor().nameSnapshot()).isNull();
     }
 
     // ── 성공 ───────────────────────────────────────────────────────────────
@@ -137,28 +143,56 @@ class GetPurchaseOrderServiceTest {
         GetPurchaseOrderResult result = service.get(UserRole.HQ_STAFF, "PO-2026-05-0002");
 
         assertThat(result.order().getCode()).isEqualTo("PO-2026-05-0002");
-        assertThat(result.vendorCode()).isEqualTo("VD-01");
-        assertThat(result.vendorName()).isEqualTo("㈜동성정밀");
-        assertThat(result.warehouseName()).isEqualTo("본사 중앙창고");
+        assertThat(result.order().getVendor().code()).isEqualTo("VD-01");
+        assertThat(result.order().getVendor().nameSnapshot()).isEqualTo("㈜동성정밀");
+        assertThat(result.order().getWarehouse().nameSnapshot()).isEqualTo("본사 중앙창고");
         // APPROVED 이력이 없으므로 승인자는 null.
         assertThat(result.approvedBy()).isNull();
     }
 
     @Test
+    void DRAFT_라인_품목정보는_master_live값으로_채워진다() {
+        ProcurementOrderCreation creation = new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-18T07:45:00Z"));
+        PurchaseOrder draftWithLines = new PurchaseOrder(
+                "PO-2026-05-0003",
+                VendorRef.codeOnly("VD-01"),
+                WarehouseRef.codeOnly("WD-01"),
+                PurchaseOrderStatus.DRAFT,
+                null,
+                List.of(new PurchaseOrderLine(null, "SKU-1", null, null, 5, Money.of(BigDecimal.valueOf(1000)))),
+                Money.of(BigDecimal.valueOf(5000)),
+                creation
+        );
+
+        given(loadPurchaseOrderPort.findByCode("PO-2026-05-0003")).willReturn(Optional.of(draftWithLines));
+        given(loadVendorPort.findByCode("VD-01")).willReturn(Optional.of(vendor));
+        given(loadWarehouseInfoPort.findByCode("WD-01")).willReturn(warehouseInfo);
+        given(loadItemPort.loadAll(List.of("SKU-1")))
+                .willReturn(Map.of("SKU-1", new ItemInfo("SKU-1", "M6 볼트", "EA")));
+
+        GetPurchaseOrderResult result = service.get(UserRole.HQ_STAFF, "PO-2026-05-0003");
+
+        PurchaseOrderLine line = result.order().getLines().get(0);
+        assertThat(line.getItemNameSnapshot()).isEqualTo("M6 볼트");
+        assertThat(line.getUnitSnapshot()).isEqualTo("EA");
+    }
+
+    @Test
     void 승인된_발주서_조회_성공_승인자는_이력_박제값() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
-        given(loadPurchaseOrderStatusHistoriesPort.findByPoCode("PO-2026-05-0001")).willReturn(List.of(
-                new PurchaseOrderStatusHistory("PO-2026-05-0001", PurchaseOrderStatus.APPROVED,
-                        new ActorRef("EMP-002", "이영희", "과장"), null,
-                        Instant.parse("2026-05-18T09:00:00Z"))
-        ));
+        given(loadPurchaseOrderStatusHistoriesPort.findLatestByPoCodeAndStatus("PO-2026-05-0001", PurchaseOrderStatus.APPROVED))
+                .willReturn(Optional.of(
+                        new PurchaseOrderStatusHistory("PO-2026-05-0001", PurchaseOrderStatus.APPROVED,
+                                new ActorRef("EMP-002", "이영희", "과장"), null,
+                                Instant.parse("2026-05-18T09:00:00Z"))
+                ));
 
         GetPurchaseOrderResult result = service.get(UserRole.HQ_MANAGER, "PO-2026-05-0001");
 
         // 확정 건은 공급사·창고명을 박제 snapshot으로 쓰므로 master를 조회하지 않는다.
         assertThat(result.order().getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
-        assertThat(result.vendorName()).isEqualTo("㈜동성정밀");
-        assertThat(result.warehouseName()).isEqualTo("본사 중앙창고");
+        assertThat(result.order().getVendor().nameSnapshot()).isEqualTo("㈜동성정밀");
+        assertThat(result.order().getWarehouse().nameSnapshot()).isEqualTo("본사 중앙창고");
         assertThat(result.approvedBy().code()).isEqualTo("EMP-002");
         assertThat(result.approvedBy().name()).isEqualTo("이영희");
         assertThat(result.approvedBy().position()).isEqualTo("과장");
@@ -167,7 +201,8 @@ class GetPurchaseOrderServiceTest {
     @Test
     void 승인된_발주서_APPROVED_이력_없으면_approvedBy_null() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-05-0001")).willReturn(Optional.of(approvedPo));
-        given(loadPurchaseOrderStatusHistoriesPort.findByPoCode("PO-2026-05-0001")).willReturn(List.of());
+        given(loadPurchaseOrderStatusHistoriesPort.findLatestByPoCodeAndStatus("PO-2026-05-0001", PurchaseOrderStatus.APPROVED))
+                .willReturn(Optional.empty());
 
         GetPurchaseOrderResult result = service.get(UserRole.ADMIN, "PO-2026-05-0001");
 
