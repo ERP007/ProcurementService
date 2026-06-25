@@ -12,6 +12,7 @@ import org.fallguys.procurementservice.application.port.outbound.model.UserActiv
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
+import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,10 +60,11 @@ public class CompleteSagaService implements CompleteSagaUseCase {
             savePurchaseOrderStatusHistoryPort.append(pending.toHistory());
             pendingStatusChangePort.removeByCode(purchaseOrderCode);
 
-            // 사용자 활동: async 입고 확정 시점에 발행. 행위자·행위 시점은 staging 값을 그대로 쓴다.
+            // 사용자 활동: async 입고 확정 시점에 발행. 행위자·행위 시점은 staging 값을 그대로 쓴다. status는 입고.
             publishUserActivityPort.publish(new UserActivity(
                     pending.actor().code(), UserActivityType.RECEIVED,
-                    order.getCode(), order.getVendor().nameSnapshot(), pending.occurredAt()));
+                    order.getCode(), order.getVendor().nameSnapshot(), pending.occurredAt(),
+                    UserActivity.statusLabel(PurchaseOrderStatus.RECEIVED)));
         });
     }
 }

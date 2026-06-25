@@ -51,7 +51,8 @@ public class UserActivityMessagingAdapter implements PublishUserActivityPort {
                         activity.type().action(),
                         activity.occurredAt(),
                         activity.title(),
-                        activity.content()));
+                        activity.content(),
+                        activity.status()));
 
         eventPublisher.publishEvent(new UserActivityAppendedEvent(event));
     }

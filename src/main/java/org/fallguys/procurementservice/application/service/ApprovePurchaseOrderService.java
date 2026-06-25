@@ -118,10 +118,11 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
                 now
         ));
 
-        // 사용자 활동: 승인은 확정 시점 → 공급사명 박제값을 content로 싣는다.
+        // 사용자 활동: 승인은 확정 시점 → 공급사명 박제값을 content로, status는 출고대기(APPROVED).
         publishUserActivityPort.publish(new UserActivity(
                 command.userCode(), UserActivityType.APPROVED,
-                saved.getCode(), vendor.getName(), now));
+                saved.getCode(), vendor.getName(), now,
+                UserActivity.statusLabel(PurchaseOrderStatus.APPROVED)));
 
         return saved;
     }

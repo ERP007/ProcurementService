@@ -98,10 +98,10 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
 
         PurchaseOrder saved = savePurchaseOrderPort.save(existing);
 
-        // 사용자 활동: 수정은 DRAFT만 → 공급사명 미박제이므로 content는 null.
+        // 사용자 활동: 수정은 DRAFT만 → 공급사명 미박제이므로 content는 null. 상태 불변이라 status도 null.
         publishUserActivityPort.publish(new UserActivity(
                 command.userCode(), UserActivityType.UPDATED,
-                saved.getCode(), null, Instant.now()));
+                saved.getCode(), null, Instant.now(), null));
 
         return saved;
     }

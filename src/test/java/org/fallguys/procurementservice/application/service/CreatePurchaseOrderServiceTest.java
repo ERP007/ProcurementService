@@ -3,6 +3,8 @@ package org.fallguys.procurementservice.application.service;
 import org.fallguys.procurementservice.application.port.inbound.command.CreatePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.inbound.command.PurchaseOrderLineCommand;
 import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivityType;
 import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.application.port.outbound.port.*;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
@@ -170,6 +172,12 @@ class CreatePurchaseOrderServiceTest {
         assertThat(history.status()).isEqualTo(PurchaseOrderStatus.DRAFT);
         assertThat(history.actor().code()).isEqualTo("EMP-001");
         assertThat(history.payload()).isNull();
+
+        ArgumentCaptor<UserActivity> activityCaptor = ArgumentCaptor.forClass(UserActivity.class);
+        verify(publishUserActivityPort).publish(activityCaptor.capture());
+        UserActivity activity = activityCaptor.getValue();
+        assertThat(activity.type()).isEqualTo(UserActivityType.CREATED);
+        assertThat(activity.status()).isEqualTo("임시저장");
     }
 
     // ── APPROVED 성공 ──────────────────────────────────────────────────────
@@ -232,6 +240,10 @@ class CreatePurchaseOrderServiceTest {
         assertThat(history.poCode()).isEqualTo("PO-2026-06-0001");
         assertThat(history.status()).isEqualTo(PurchaseOrderStatus.APPROVED);
         assertThat(history.actor().code()).isEqualTo("EMP-001");
+
+        ArgumentCaptor<UserActivity> activityCaptor = ArgumentCaptor.forClass(UserActivity.class);
+        verify(publishUserActivityPort).publish(activityCaptor.capture());
+        assertThat(activityCaptor.getValue().status()).isEqualTo("출고대기");
     }
 
     // ── 픽스처 ────────────────────────────────────────────────────────────

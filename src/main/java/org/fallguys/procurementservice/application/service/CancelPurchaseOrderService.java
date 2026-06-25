@@ -79,10 +79,11 @@ public class CancelPurchaseOrderService implements CancelPurchaseOrderUseCase {
                 now
         ));
 
-        // 사용자 활동: 공급사명 박제값(APPROVED 거친 경우)이 있으면 content로, DRAFT 취소면 null.
+        // 사용자 활동: 공급사명 박제값(APPROVED 거친 경우)이 있으면 content로, DRAFT 취소면 null. status는 취소.
         publishUserActivityPort.publish(new UserActivity(
                 command.userCode(), UserActivityType.CANCELED,
-                saved.getCode(), saved.getVendor().nameSnapshot(), now));
+                saved.getCode(), saved.getVendor().nameSnapshot(), now,
+                UserActivity.statusLabel(PurchaseOrderStatus.CANCELED)));
 
         return saved;
     }

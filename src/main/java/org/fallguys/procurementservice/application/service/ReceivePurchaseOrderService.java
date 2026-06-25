@@ -102,10 +102,11 @@ public class ReceivePurchaseOrderService implements ReceivePurchaseOrderUseCase 
             PurchaseOrder saved = savePurchaseOrderPort.save(order);
             savePurchaseOrderStatusHistoryPort.append(pending.toHistory());
 
-            // 사용자 활동: 입고 확정은 sync 경로에서 즉시 발생. async는 CompleteSagaService가 발행한다.
+            // 사용자 활동: 입고 확정은 sync 경로에서 즉시 발생. async는 CompleteSagaService가 발행한다. status는 입고.
             publishUserActivityPort.publish(new UserActivity(
                     command.userCode(), UserActivityType.RECEIVED,
-                    saved.getCode(), saved.getVendor().nameSnapshot(), pending.occurredAt()));
+                    saved.getCode(), saved.getVendor().nameSnapshot(), pending.occurredAt(),
+                    UserActivity.statusLabel(PurchaseOrderStatus.RECEIVED)));
             return saved;
         }
 
