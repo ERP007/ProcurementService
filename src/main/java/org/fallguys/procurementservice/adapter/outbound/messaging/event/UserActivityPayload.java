@@ -10,15 +10,13 @@ import java.time.Instant;
  * occurredAt : 발생 시각. envelope.occurredAt과 같은 값.
  * title      : 목록 주요 문구(발주 code).
  * content    : 주요 문구 뒤 상세(공급사명). 없으면 null.
- * status     : 목록 배지 문구(예: "발주 승인").
  */
 public record UserActivityPayload(
         String employeeNo,
         String action,
         Instant occurredAt,
         String title,
-        String content,
-        String status
+        String content
 ) {
     public static final String SYSTEM = "SYSTEM";
 }
