@@ -121,9 +121,11 @@ public class CreatePurchaseOrderService implements CreatePurchaseOrderUseCase {
                 null, now));
 
         // 사용자 활동: 즉시 APPROVED 생성도 생성 1건으로 본다. 공급사명은 확정(APPROVED) 시에만 박제값 존재.
+        // status는 생성 결과 상태 라벨: DRAFT→임시저장, APPROVED→출고대기.
         publishUserActivityPort.publish(new UserActivity(
                 command.userCode(), UserActivityType.CREATED,
-                saved.getCode(), isApproved ? vendor.getName() : null, now));
+                saved.getCode(), isApproved ? vendor.getName() : null, now,
+                UserActivity.statusLabel(command.status())));
 
         return saved;
     }

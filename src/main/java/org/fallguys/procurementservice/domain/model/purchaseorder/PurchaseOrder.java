@@ -88,6 +88,15 @@ public class PurchaseOrder {
         this.totalAmount = calculateTotalAmount(lines);
     }
 
+    // DRAFT는 vendor·warehouse 표시명이 비어 있어 조회 시 live 값으로 채운다(영속화 X, 표시 용도).
+    public void enrichVendorName(String name) {
+        this.vendor = VendorRef.snapshot(this.vendor.code(), name);
+    }
+
+    public void enrichWarehouseName(String name) {
+        this.warehouse = WarehouseRef.snapshot(this.warehouse.code(), name);
+    }
+
     private static Money calculateTotalAmount(List<PurchaseOrderLine> lines) {
         return new Money(lines.stream()
                 .map(line -> line.lineAmount().amount())

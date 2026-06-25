@@ -1,6 +1,7 @@
 package org.fallguys.procurementservice.application.service;
 
 import org.fallguys.procurementservice.application.port.inbound.command.CancelPurchaseOrderCommand;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
@@ -172,6 +173,10 @@ class CancelPurchaseOrderServiceTest {
         assertThat(history.status()).isEqualTo(PurchaseOrderStatus.CANCELED);
         assertThat(history.actor().code()).isEqualTo("EMP-001");
         assertThat(history.payload()).isEqualTo(new CancellationPayload("재발주 예정"));
+
+        ArgumentCaptor<UserActivity> activityCaptor = ArgumentCaptor.forClass(UserActivity.class);
+        verify(publishUserActivityPort).publish(activityCaptor.capture());
+        assertThat(activityCaptor.getValue().status()).isEqualTo("취소");
     }
 
     @Test
