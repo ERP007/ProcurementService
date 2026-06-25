@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.fallguys.procurementservice.application.port.inbound.usecase.CompleteSagaUseCase;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.PendingStatusChangePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivityType;
 import org.fallguys.procurementservice.domain.exception.ProcurementErrorCode;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
@@ -21,6 +24,7 @@ public class CompleteSagaService implements CompleteSagaUseCase {
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final PendingStatusChangePort pendingStatusChangePort;
     private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    private final PublishUserActivityPort publishUserActivityPort;
 
     /**
      * 입고 성공 응답 수신 시 saga를 DONE으로 확정하고, staging된 상태 전환을 이력으로 승격한다.
@@ -54,6 +58,11 @@ public class CompleteSagaService implements CompleteSagaUseCase {
         pendingStatusChangePort.findByCode(purchaseOrderCode).ifPresent(pending -> {
             savePurchaseOrderStatusHistoryPort.append(pending.toHistory());
             pendingStatusChangePort.removeByCode(purchaseOrderCode);
+
+            // 사용자 활동: async 입고 확정 시점에 발행. 행위자·행위 시점은 staging 값을 그대로 쓴다.
+            publishUserActivityPort.publish(new UserActivity(
+                    pending.actor().code(), UserActivityType.RECEIVED,
+                    order.getCode(), order.getVendor().nameSnapshot(), pending.occurredAt()));
         });
     }
 }

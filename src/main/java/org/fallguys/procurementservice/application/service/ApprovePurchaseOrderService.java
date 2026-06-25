@@ -9,8 +9,11 @@ import org.fallguys.procurementservice.application.port.outbound.port.LoadPurcha
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivityType;
 import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
@@ -44,6 +47,7 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
     private final LoadWarehouseInfoPort loadWarehouseInfoPort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    private final PublishUserActivityPort publishUserActivityPort;
 
     /**
      * DRAFT 발주서를 승인한다.
@@ -105,13 +109,19 @@ public class ApprovePurchaseOrderService implements ApprovePurchaseOrderUseCase 
 
         PurchaseOrder saved = savePurchaseOrderPort.save(purchaseOrder);
 
+        Instant now = Instant.now();
         savePurchaseOrderStatusHistoryPort.append(new PurchaseOrderStatusHistory(
                 saved.getCode(),
                 PurchaseOrderStatus.APPROVED,
                 new ActorRef(command.userCode(), command.userName(), command.userPosition()),
                 null,
-                Instant.now()
+                now
         ));
+
+        // 사용자 활동: 승인은 확정 시점 → 공급사명 박제값을 content로 싣는다.
+        publishUserActivityPort.publish(new UserActivity(
+                command.userCode(), UserActivityType.APPROVED,
+                saved.getCode(), vendor.getName(), now));
 
         return saved;
     }

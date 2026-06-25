@@ -1,25 +1,24 @@
 package org.fallguys.procurementservice.application.service;
 
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.port.PendingStatusChangePort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
-import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.ResourceNotFoundException;
 import org.fallguys.procurementservice.domain.model.Money;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
 import org.fallguys.procurementservice.domain.model.purchaseorder.SagaStatus;
-import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,7 +35,7 @@ class CompensateInboundServiceTest {
 
     @Mock private LoadPurchaseOrderPort loadPurchaseOrderPort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
-    @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    @Mock private PendingStatusChangePort pendingStatusChangePort;
 
     @InjectMocks
     private CompensateInboundService service;
@@ -45,32 +44,28 @@ class CompensateInboundServiceTest {
 
     private PurchaseOrder order(PurchaseOrderStatus status, SagaStatus saga) {
         return new PurchaseOrder(
-                CODE, "VD-01", "WD-01", status,
-                LocalDate.of(2026, 5, 24), null, List.of(),
+                CODE,
+                VendorRef.snapshot("VD-01", "벤더"),
+                WarehouseRef.snapshot("WD-01", "창고"),
+                status, null, List.of(),
                 Money.of(BigDecimal.ZERO),
                 new ProcurementOrderCreation("EMP-001", Instant.parse("2026-05-01T09:00:00Z")),
-                saga
+                saga, null
         );
     }
 
     @Test
-    void 활성_saga이면_롤백_FAILED_이력기록() {
+    void 활성_saga이면_롤백_FAILED_staging제거() {
         PurchaseOrder order = order(PurchaseOrderStatus.RECEIVED, SagaStatus.PROCESSING);
         given(loadPurchaseOrderPort.findByCode(CODE)).willReturn(Optional.of(order));
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
         service.compensate(CODE, "INV-001", "재고 부족");
 
+        // 보상은 RECEIVED→APPROVED 롤백 + saga FAILED. 확정 milestone이 아니므로 이력은 남기지 않고 staging만 제거한다.
         assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
         assertThat(order.getSagaStatus()).isEqualTo(SagaStatus.FAILED);
-
-        ArgumentCaptor<PurchaseOrderStatusHistory> captor =
-                ArgumentCaptor.forClass(PurchaseOrderStatusHistory.class);
-        verify(savePurchaseOrderStatusHistoryPort).append(captor.capture());
-        PurchaseOrderStatusHistory history = captor.getValue();
-        assertThat(history.status()).isEqualTo(PurchaseOrderStatus.APPROVED);
-        assertThat(history.actorCode()).isEqualTo("SYSTEM");
-        assertThat(history.payload()).isNull();
+        verify(pendingStatusChangePort).removeByCode(CODE);
     }
 
     @Test
@@ -81,7 +76,7 @@ class CompensateInboundServiceTest {
         service.compensate(CODE, "INV-001", "재고 부족");
 
         verify(savePurchaseOrderPort, never()).save(any());
-        verifyNoInteractions(savePurchaseOrderStatusHistoryPort);
+        verifyNoInteractions(pendingStatusChangePort);
     }
 
     @Test
@@ -92,7 +87,7 @@ class CompensateInboundServiceTest {
         service.compensate(CODE, "INV-001", "재고 부족");
 
         verify(savePurchaseOrderPort, never()).save(any());
-        verifyNoInteractions(savePurchaseOrderStatusHistoryPort);
+        verifyNoInteractions(pendingStatusChangePort);
     }
 
     @Test
@@ -103,7 +98,7 @@ class CompensateInboundServiceTest {
         service.compensate(CODE, "INV-001", "재고 부족");
 
         verify(savePurchaseOrderPort, never()).save(any());
-        verifyNoInteractions(savePurchaseOrderStatusHistoryPort);
+        verifyNoInteractions(pendingStatusChangePort);
     }
 
     @Test
@@ -114,6 +109,6 @@ class CompensateInboundServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
 
         verify(savePurchaseOrderPort, never()).save(any());
-        verifyNoInteractions(savePurchaseOrderStatusHistoryPort);
+        verifyNoInteractions(pendingStatusChangePort);
     }
 }

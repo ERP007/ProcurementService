@@ -7,7 +7,10 @@ import org.fallguys.procurementservice.application.port.inbound.usecase.UpdatePu
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivity;
+import org.fallguys.procurementservice.application.port.outbound.model.UserActivityType;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
 import org.fallguys.procurementservice.domain.exception.ForbiddenException;
 import org.fallguys.procurementservice.domain.exception.CommonErrorCode;
@@ -22,6 +25,7 @@ import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOr
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +38,7 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
     private final LoadVendorPort loadVendorPort;
     private final LoadWarehousePort loadWarehousePort;
     private final SavePurchaseOrderPort savePurchaseOrderPort;
+    private final PublishUserActivityPort publishUserActivityPort;
 
     /**
      * DRAFT 상태 발주서를 수정한다.
@@ -91,7 +96,14 @@ public class UpdatePurchaseOrderDraftService implements UpdatePurchaseOrderDraft
                 lines
         );
 
-        return savePurchaseOrderPort.save(existing);
+        PurchaseOrder saved = savePurchaseOrderPort.save(existing);
+
+        // 사용자 활동: 수정은 DRAFT만 → 공급사명 미박제이므로 content는 null.
+        publishUserActivityPort.publish(new UserActivity(
+                command.userCode(), UserActivityType.UPDATED,
+                saved.getCode(), null, Instant.now()));
+
+        return saved;
     }
 
     private void validateNoDuplicateItemSkus(List<PurchaseOrderLineCommand> lines) {

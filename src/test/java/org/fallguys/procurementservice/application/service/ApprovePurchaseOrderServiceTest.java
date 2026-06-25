@@ -2,10 +2,13 @@ package org.fallguys.procurementservice.application.service;
 
 import org.fallguys.procurementservice.application.port.inbound.command.ApprovePurchaseOrderCommand;
 import org.fallguys.procurementservice.application.port.outbound.model.ItemInfo;
+import org.fallguys.procurementservice.application.port.outbound.model.WarehouseInfo;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadItemPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadPurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadVendorPort;
+import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehouseInfoPort;
 import org.fallguys.procurementservice.application.port.outbound.port.LoadWarehousePort;
+import org.fallguys.procurementservice.application.port.outbound.port.PublishUserActivityPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderPort;
 import org.fallguys.procurementservice.application.port.outbound.port.SavePurchaseOrderStatusHistoryPort;
 import org.fallguys.procurementservice.domain.exception.BusinessValidationException;
@@ -16,6 +19,8 @@ import org.fallguys.procurementservice.domain.model.*;
 import org.fallguys.procurementservice.domain.model.purchaseorder.ProcurementOrderCreation;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrder;
 import org.fallguys.procurementservice.domain.model.purchaseorder.PurchaseOrderStatus;
+import org.fallguys.procurementservice.domain.model.purchaseorder.VendorRef;
+import org.fallguys.procurementservice.domain.model.purchaseorder.WarehouseRef;
 import org.fallguys.procurementservice.domain.model.purchaseorderhistory.PurchaseOrderStatusHistory;
 import org.fallguys.procurementservice.domain.model.purchaseorderline.PurchaseOrderLine;
 import org.fallguys.procurementservice.domain.model.vendor.Vendor;
@@ -29,7 +34,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,8 +54,10 @@ class ApprovePurchaseOrderServiceTest {
     @Mock private LoadItemPort loadItemPort;
     @Mock private LoadVendorPort loadVendorPort;
     @Mock private LoadWarehousePort loadWarehousePort;
+    @Mock private LoadWarehouseInfoPort loadWarehouseInfoPort;
     @Mock private SavePurchaseOrderPort savePurchaseOrderPort;
     @Mock private SavePurchaseOrderStatusHistoryPort savePurchaseOrderStatusHistoryPort;
+    @Mock private PublishUserActivityPort publishUserActivityPort;
 
     @InjectMocks
     private ApprovePurchaseOrderService service;
@@ -71,20 +77,24 @@ class ApprovePurchaseOrderServiceTest {
         ProcurementOrderCreation creation = new ProcurementOrderCreation("EMP-001", Instant.parse("2026-06-01T00:00:00Z"));
 
         draftPoWithLine = new PurchaseOrder(
-                "PO-2026-06-0001", "VD-001", "HQ-SE-01",
+                "PO-2026-06-0001",
+                VendorRef.codeOnly("VD-001"),
+                WarehouseRef.codeOnly("HQ-SE-01"),
                 PurchaseOrderStatus.DRAFT,
-                LocalDate.now().plusDays(7), "메모",
+                "메모",
                 List.of(draftLine),
                 Money.of(BigDecimal.valueOf(50000)),
                 creation
         );
     }
 
-    private PurchaseOrder draftPo(LocalDate desiredArrivalDate, List<PurchaseOrderLine> lines) {
+    private PurchaseOrder draftPo(List<PurchaseOrderLine> lines) {
         return new PurchaseOrder(
-                "PO-2026-06-0001", "VD-001", "HQ-SE-01",
+                "PO-2026-06-0001",
+                VendorRef.codeOnly("VD-001"),
+                WarehouseRef.codeOnly("HQ-SE-01"),
                 PurchaseOrderStatus.DRAFT,
-                desiredArrivalDate, "메모",
+                "메모",
                 lines,
                 Money.of(BigDecimal.ZERO),
                 new ProcurementOrderCreation("EMP-001", Instant.now())
@@ -126,9 +136,11 @@ class ApprovePurchaseOrderServiceTest {
     @Test
     void DRAFT_아닌_상태이면_BusinessValidationException_발생하고_외부호출_없음() {
         PurchaseOrder approvedPo = new PurchaseOrder(
-                "PO-2026-06-0001", "VD-001", "HQ-SE-01",
+                "PO-2026-06-0001",
+                VendorRef.snapshot("VD-001", "벤더"),
+                WarehouseRef.snapshot("HQ-SE-01", "창고"),
                 PurchaseOrderStatus.APPROVED,
-                LocalDate.now().plusDays(7), null,
+                null,
                 List.of(draftLine),
                 Money.of(BigDecimal.valueOf(50000)),
                 new ProcurementOrderCreation("EMP-001", Instant.now())
@@ -147,37 +159,11 @@ class ApprovePurchaseOrderServiceTest {
     @Test
     void 라인_없는_발주서이면_BusinessValidationException_발생() {
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001"))
-                .willReturn(Optional.of(draftPo(LocalDate.now().plusDays(7), List.of())));
+                .willReturn(Optional.of(draftPo(List.of())));
 
         assertThatThrownBy(() -> service.approve(UserRole.ADMIN, command()))
                 .isInstanceOf(BusinessValidationException.class)
                 .hasMessageContaining(ProcurementErrorCode.EMPTY_PURCHASE_ORDER_LINE.getMessage());
-
-        verifyNoInteractions(loadItemPort, loadVendorPort, loadWarehousePort, savePurchaseOrderPort);
-    }
-
-    // ── 도착 희망일 검증 ───────────────────────────────────────────────────
-
-    @Test
-    void 도착희망일_과거이면_BusinessValidationException_발생() {
-        given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001"))
-                .willReturn(Optional.of(draftPo(LocalDate.now().minusDays(1), List.of(draftLine))));
-
-        assertThatThrownBy(() -> service.approve(UserRole.ADMIN, command()))
-                .isInstanceOf(BusinessValidationException.class)
-                .hasMessageContaining(ProcurementErrorCode.DESIRED_ARRIVAL_DATE_IN_PAST.getMessage());
-
-        verifyNoInteractions(loadItemPort, loadVendorPort, loadWarehousePort, savePurchaseOrderPort);
-    }
-
-    @Test
-    void 도착희망일_1년_초과이면_BusinessValidationException_발생() {
-        given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001"))
-                .willReturn(Optional.of(draftPo(LocalDate.now().plusYears(1).plusDays(1), List.of(draftLine))));
-
-        assertThatThrownBy(() -> service.approve(UserRole.ADMIN, command()))
-                .isInstanceOf(BusinessValidationException.class)
-                .hasMessageContaining(ProcurementErrorCode.DESIRED_ARRIVAL_DATE_TOO_FAR.getMessage());
 
         verifyNoInteractions(loadItemPort, loadVendorPort, loadWarehousePort, savePurchaseOrderPort);
     }
@@ -234,6 +220,7 @@ class ApprovePurchaseOrderServiceTest {
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(draftPoWithLine));
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
+        given(loadWarehouseInfoPort.findByCode("HQ-SE-01")).willReturn(new WarehouseInfo("HQ-SE-01", "서울창고"));
         given(loadItemPort.loadAll(List.of("SKU-001"))).willReturn(Map.of("SKU-001", itemInfo));
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -251,6 +238,7 @@ class ApprovePurchaseOrderServiceTest {
         given(loadPurchaseOrderPort.findByCode("PO-2026-06-0001")).willReturn(Optional.of(draftPoWithLine));
         given(loadVendorPort.findActiveByCode("VD-001")).willReturn(Optional.of(vendor));
         willDoNothing().given(loadWarehousePort).verifyActive("HQ-SE-01");
+        given(loadWarehouseInfoPort.findByCode("HQ-SE-01")).willReturn(new WarehouseInfo("HQ-SE-01", "서울창고"));
         given(loadItemPort.loadAll(List.of("SKU-001"))).willReturn(Map.of("SKU-001", itemInfo));
         given(savePurchaseOrderPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -263,7 +251,7 @@ class ApprovePurchaseOrderServiceTest {
         PurchaseOrderStatusHistory history = historyCaptor.getValue();
         assertThat(history.poCode()).isEqualTo("PO-2026-06-0001");
         assertThat(history.status()).isEqualTo(PurchaseOrderStatus.APPROVED);
-        assertThat(history.actorCode()).isEqualTo("EMP-001");
+        assertThat(history.actor().code()).isEqualTo("EMP-001");
         assertThat(history.payload()).isNull();
         assertThat(history.createdAt()).isNotNull();
     }
@@ -271,6 +259,6 @@ class ApprovePurchaseOrderServiceTest {
     // ── 픽스처 ────────────────────────────────────────────────────────────
 
     private ApprovePurchaseOrderCommand command() {
-        return new ApprovePurchaseOrderCommand("PO-2026-06-0001", "EMP-001");
+        return new ApprovePurchaseOrderCommand("PO-2026-06-0001", "EMP-001", "홍길동", "사원");
     }
 }

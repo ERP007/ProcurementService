@@ -41,13 +41,14 @@ public record DraftPurchaseOrderRequest(
         );
     }
 
-    public UpdatePurchaseOrderDraftCommand toUpdateCommand(String code) {
+    public UpdatePurchaseOrderDraftCommand toUpdateCommand(String code, String userCode) {
         List<PurchaseOrderLineCommand> lineCommands = lines == null
                 ? List.of()
                 : lines.stream().map(PurchaseOrderLineRequest::toCommand).toList();
 
         return new UpdatePurchaseOrderDraftCommand(
                 code,
+                userCode,
                 vendorCode,
                 warehouseCode,
                 memo,

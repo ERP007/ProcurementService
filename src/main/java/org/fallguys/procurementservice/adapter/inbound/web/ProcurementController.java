@@ -148,7 +148,8 @@ public class ProcurementController {
             @RequestBody @Valid DraftPurchaseOrderRequest request
     ) {
         UserRole role = JwtClaimExtractor.extractRole(jwt);
-        PurchaseOrder updated = updatePurchaseOrderDraftUseCase.update(role, request.toUpdateCommand(code));
+        String userCode = JwtClaimExtractor.extractUserCode(jwt);
+        PurchaseOrder updated = updatePurchaseOrderDraftUseCase.update(role, request.toUpdateCommand(code, userCode));
         return ResponseEntity.ok(PurchaseOrderStatusResponse.from(updated));
     }
 
